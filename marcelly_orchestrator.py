@@ -125,7 +125,21 @@ class MarcellyOrchestrator:
                 break
             if not user_input.strip():
                 continue
-            response = self.handle(user_input)
+            try:
+                response = self.handle(user_input)
+            except ConnectionError:
+                console.print(Panel(
+                    "[bold red]Não consegui falar com o Ollama.[/bold red]\n"
+                    "Verifique se ele está instalado e rodando:\n"
+                    "[cyan]ollama serve[/cyan]  (em outro terminal)\n"
+                    "E baixe o modelo:\n"
+                    "[cyan]ollama pull llama3.2:8b[/cyan]",
+                    border_style="red", title="Erro de conexão",
+                ))
+                continue
+            except Exception as e:
+                console.print(Panel(f"[red]Algo deu errado:[/red] {e}", border_style="red", title="Erro"))
+                continue
             console.print(Panel(response, border_style="green", title="Marcelly"))
 
         console.print("[dim]Até logo.[/dim]")
