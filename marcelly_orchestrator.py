@@ -28,6 +28,61 @@ class MarcellyOrchestrator:
         self.guidance = GuidanceModule()
         self.memory: list[dict[str, Any]] = []
 
+    def _ensure_ollama(self) -> bool:
+        """Configuração inicial: garante Ollama instalado, rodando e com os modelos."""
+        import shutil
+        import subprocess
+        import time
+        from rich.prompt import Confirm
+        from ollama import Client
+
+        def _ok() -> bool:
+            try:
+                Client(host=CONFIG.ollama.host).list()
+                return True
+            except Exception:
+                return False
+
+        if _ok():
+            return True
+
+        console.print(Panel(
+            "[yellow]Ollama não encontrado.[/yellow]\n"
+            "Ele é o cérebro local do Marcelly (nada sai da sua máquina).\n"
+            "Agora vou instalar, iniciar e baixar os modelos pela primeira vez.",
+            border_style="yellow", title="Configuração inicial",
+        ))
+        if not Confirm.ask("Continuar com a configuração agora?", default=True):
+            console.print("[dim]Sem problema — instale depois em https://ollama.com/download[/dim]")
+            return False
+
+        if not shutil.which("ollama"):
+            subprocess.run(
+                ["winget", "install", "--id", "Ollama.Ollama", "-e",
+                 "--accept-source-agreements", "--accept-package-agreements"],
+                check=False,
+            )
+        if not _ok():
+            subprocess.Popen(
+                ["ollama", "serve"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+            for _ in range(10):
+                time.sleep(2)
+                if _ok():
+                    break
+        if not _ok():
+            console.print(
+                "[red]Não consegui iniciar o Ollama.[/red] "
+                "Abra o aplicativo Ollama e rode o Marcelly novamente."
+            )
+            return False
+
+        for model in (CONFIG.ollama.model, CONFIG.ollama.decision_model, "nomic-embed-text"):
+            console.print(f"[cyan]Baixando modelo: {model}[/cyan]")
+            subprocess.run(["ollama", "pull", model], check=False)
+        return _ok()
+
     def handle(self, user_input: str) -> str:
         """Processa uma entrada e devolve a resposta formatada."""
         routing = self.router.route(user_input)
@@ -110,6 +165,8 @@ class MarcellyOrchestrator:
 
     def run_cli(self):
         """Modo interativo de linha de comando."""
+        if not self._ensure_ollama():
+            return
         console.print(Panel.fit(
             "[bold cyan]Marcelly[/bold cyan] — Assistente local\n"
             "[dim]E-mails · Decisões · Direcionamentos[/dim]\n"
@@ -149,6 +206,7 @@ if __name__ == "__main__":
     orchestrator = MarcellyOrchestrator()
     if len(sys.argv) > 1:
         # Modo one-shot: python marcelly_orchestrator.py "resuma meus e-mails"
-        print(orchestrator.handle(" ".join(sys.argv[1:])))
+        if orchestrator._ensure_ollama():
+            print(orchestrator.handle(" ".join(sys.argv[1:])))
     else:
         orchestrator.run_cli()
