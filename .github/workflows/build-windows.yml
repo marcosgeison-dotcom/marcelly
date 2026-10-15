@@ -29,7 +29,7 @@ jobs:
           pip install pyinstaller
 
       - name: Compilar Marcelly.exe
-        run: pyinstaller --onefile --name Marcelly --collect-all tydex --collect-all brier marcelly_orchestrator.py
+        run: pyinstaller --onefile --name Marcelly --add-data "ui;ui" --collect-all tydex --collect-all brier --collect-all uvicorn app.py
 
       - name: Anexar exe à release
         uses: softprops/action-gh-release@v2
