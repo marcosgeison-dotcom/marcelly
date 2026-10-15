@@ -12,11 +12,12 @@ import webbrowser
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import Body, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from core.orchestrator import MarcellyOrchestrator
+from core.startup import create_desktop_shortcut, get_autostart, set_autostart
 from core.voice import VoiceEngine
 
 BASE_DIR = Path(__file__).parent
@@ -32,6 +33,17 @@ voice = VoiceEngine()
 @app.get("/")
 async def index():
     return FileResponse(UI_DIR / "index.html")
+
+
+@app.get("/api/autostart")
+async def autostart_state():
+    return {"enabled": get_autostart()}
+
+
+@app.post("/api/autostart")
+async def update_autostart(enabled: bool = Body(..., embed=True)):
+    ok = set_autostart(enabled)
+    return {"enabled": get_autostart() if ok else enabled, "ok": ok}
 
 
 @app.websocket("/ws")
@@ -101,6 +113,10 @@ async def websocket_endpoint(ws: WebSocket):
 if __name__ == "__main__":
     if not orchestrator._ensure_ollama():
         sys.exit(1)
+    # Atalho na Área de Trabalho + início junto com o Windows (1ª execução)
+    create_desktop_shortcut()
+    if not get_autostart():
+        set_autostart(True)
     port = 8765
     print("U0001f512 Marcelly rodando em http://127.0.0.1:8765")
     threading.Timer(1.5, lambda: webbrowser.open("http://127.0.0.1:8765")).start()
