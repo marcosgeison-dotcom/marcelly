@@ -108,7 +108,7 @@ class MarcellyOrchestrator:
                 "[yellow]Não consegui baixar:[/yellow] " + ", ".join(failed) + "\n"
                 "Verifique sua internet e rode o Marcelly novamente.\n"
                 "Ou baixe manualmente no PowerShell:\n"
-                "[cyan]ollama pull llama3.2:8b[/cyan]",
+                "[cyan]ollama pull llama3.2:3b[/cyan]",
                 border_style="yellow", title="Download de modelos",
             ))
         return _server_ok() and not failed
@@ -220,7 +220,7 @@ class MarcellyOrchestrator:
                     "Verifique se ele está instalado e rodando:\n"
                     "[cyan]ollama serve[/cyan]  (em outro terminal)\n"
                     "E baixe o modelo:\n"
-                    "[cyan]ollama pull llama3.2:8b[/cyan]",
+                    "[cyan]ollama pull llama3.2:3b[/cyan]",
                     border_style="red", title="Erro de conexão",
                 ))
                 continue
