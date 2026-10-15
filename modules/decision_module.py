@@ -23,7 +23,7 @@ class DecisionResult:
 class DecisionModule:
     def __init__(self):
         backend = OllamaBackend(
-            host=CONFIG.ollama.host,
+            base_url=CONFIG.ollama.host,
             model=CONFIG.ollama.decision_model,
         )
         self.decider = Tydex(backend, model=CONFIG.ollama.decision_model)
