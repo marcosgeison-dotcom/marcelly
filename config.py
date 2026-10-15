@@ -10,7 +10,7 @@ from typing import Optional
 @dataclass
 class OllamaConfig:
     host: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-    model: str = os.getenv("MARCELY_MODEL", "llama3.2:8b")
+    model: str = os.getenv("MARCELY_MODEL", "llama3.2:3b")
     decision_model: str = os.getenv("MARCELY_DECISION_MODEL", "qwen2.5:3b")
     temperature: float = 0.3
 
