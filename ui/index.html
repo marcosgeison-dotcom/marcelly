@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marcelly — Assistente local</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='none' stroke='%2300e5ff' stroke-width='2'/><circle cx='16' cy='16' r='5' fill='%2300e5ff'/></svg>" />
+</head>
+<body>
+  <div class="chat">
+    <header class="chat__header">
+      <div class="chat__brand">
+        <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true">
+          <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="2"/>
+          <circle cx="16" cy="16" r="5" fill="currentColor"/>
+        </svg>
+        <div>
+          <strong>Marcelly</strong>
+          <span class="chat__status">
+            <span class="dot"></span> local · privado · v1.0
+          </span>
+        </div>
+      </div>
+      <div class="chat__mood" id="moodIndicator" title="Humor do dia">
+        <span class="chat__mood-emoji">🙂</span>
+        <span class="chat__mood-label" id="moodLabel">neutro</span>
+      </div>
+    </header>
+
+    <main class="chat__body" id="chatBody" aria-live="polite">
+      <div class="msg msg--bot">
+        <div class="msg__avatar">M</div>
+        <div class="msg__bubble">
+          <p>Oi! Sou a <strong>Marcelly</strong>. Posso te ajudar com e-mails,
+          decisões e direcionamentos — tudo rodando aqui no seu computador.</p>
+          <p class="msg__hint">Experimente: <em>"resuma meus e-mails"</em>,
+          <em>"devo aceitar a proposta?"</em> ou <em>"me dê opções para o jantar"</em>.</p>
+        </div>
+      </div>
+    </main>
+
+    <form class="chat__input" id="chatForm" autocomplete="off">
+      <input
+        type="text"
+        id="messageInput"
+        placeholder="Escreva sua mensagem…"
+        aria-label="Mensagem"
+        required
+      />
+      <button type="submit" id="sendBtn" aria-label="Enviar">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m22 2-7 20-4-9-9-4 20-7z"/>
+        </svg>
+      </button>
+    </form>
+
+    <div class="chat__typing" id="typingIndicator" hidden>
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
