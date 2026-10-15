@@ -6,7 +6,7 @@ probabilidades reais para cada opção.
 from dataclasses import dataclass, field
 
 from tydex import Tydex
-from tydex.backends.ollama import OllamaBackend  # backend local
+from tydex.backends import OllamaBackend  # backend local
 
 from config import CONFIG
 
