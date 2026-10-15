@@ -36,52 +36,82 @@ class MarcellyOrchestrator:
         from rich.prompt import Confirm
         from ollama import Client
 
-        def _ok() -> bool:
+        wanted = [CONFIG.ollama.model, CONFIG.ollama.decision_model, "nomic-embed-text"]
+
+        def _server_ok() -> bool:
             try:
                 Client(host=CONFIG.ollama.host).list()
                 return True
             except Exception:
                 return False
 
-        if _ok():
+        def _installed() -> set:
+            try:
+                return {m.model for m in Client(host=CONFIG.ollama.host).list().models}
+            except Exception:
+                return set()
+
+        def _missing() -> list:
+            have = _installed()
+            return [m for m in wanted if not any(h == m or h.startswith(m) for h in have)]
+
+        missing = _missing()
+        if _server_ok() and not missing:
             return True
 
-        console.print(Panel(
-            "[yellow]Ollama não encontrado.[/yellow]\n"
-            "Ele é o cérebro local do Marcelly (nada sai da sua máquina).\n"
-            "Agora vou instalar, iniciar e baixar os modelos pela primeira vez.",
-            border_style="yellow", title="Configuração inicial",
-        ))
-        if not Confirm.ask("Continuar com a configuração agora?", default=True):
-            console.print("[dim]Sem problema — instale depois em https://ollama.com/download[/dim]")
-            return False
+        if _server_ok():
+            console.print(f"[yellow]Faltam modelos: {', '.join(missing)}[/yellow]")
+        else:
+            console.print(Panel(
+                "[yellow]Ollama não encontrado.[/yellow]\n"
+                "Ele é o cérebro local do Marcelly (nada sai da sua máquina).\n"
+                "Agora vou instalar, iniciar e baixar os modelos pela primeira vez.",
+                border_style="yellow", title="Configuração inicial",
+            ))
+            if not Confirm.ask("Continuar com a configuração agora?", default=True):
+                console.print("[dim]Sem problema — instale depois em https://ollama.com/download[/dim]")
+                return False
+            if not shutil.which("ollama"):
+                subprocess.run(
+                    ["winget", "install", "--id", "Ollama.Ollama", "-e",
+                     "--accept-source-agreements", "--accept-package-agreements"],
+                    check=False,
+                )
+            if not _server_ok():
+                subprocess.Popen(
+                    ["ollama", "serve"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                )
+                for _ in range(10):
+                    time.sleep(2)
+                    if _server_ok():
+                        break
+            if not _server_ok():
+                console.print(
+                    "[red]Não consegui iniciar o Ollama.[/red] "
+                    "Abra o aplicativo Ollama e rode o Marcelly novamente."
+                )
+                return False
+            missing = _missing()
 
-        if not shutil.which("ollama"):
-            subprocess.run(
-                ["winget", "install", "--id", "Ollama.Ollama", "-e",
-                 "--accept-source-agreements", "--accept-package-agreements"],
-                check=False,
-            )
-        if not _ok():
-            subprocess.Popen(
-                ["ollama", "serve"],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            )
-            for _ in range(10):
-                time.sleep(2)
-                if _ok():
-                    break
-        if not _ok():
-            console.print(
-                "[red]Não consegui iniciar o Ollama.[/red] "
-                "Abra o aplicativo Ollama e rode o Marcelly novamente."
-            )
-            return False
-
-        for model in (CONFIG.ollama.model, CONFIG.ollama.decision_model, "nomic-embed-text"):
+        failed = []
+        for model in missing:
             console.print(f"[cyan]Baixando modelo: {model}[/cyan]")
-            subprocess.run(["ollama", "pull", model], check=False)
-        return _ok()
+            try:
+                result = subprocess.run(["ollama", "pull", model], check=False)
+                if result.returncode != 0 or model in _missing():
+                    failed.append(model)
+            except FileNotFoundError:
+                failed.append(model)
+        if failed:
+            console.print(Panel(
+                "[yellow]Não consegui baixar:[/yellow] " + ", ".join(failed) + "\n"
+                "Verifique sua internet e rode o Marcelly novamente.\n"
+                "Ou baixe manualmente no PowerShell:\n"
+                "[cyan]ollama pull llama3.2:8b[/cyan]",
+                border_style="yellow", title="Download de modelos",
+            ))
+        return _server_ok() and not failed
 
     def handle(self, user_input: str) -> str:
         """Processa uma entrada e devolve a resposta formatada."""
