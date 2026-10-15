@@ -46,22 +46,24 @@ class OllamaClient:
 
     def classify_intent(self, user_input: str) -> dict[str, Any]:
         """
-        Classifica a intenção do usuário em uma das três frentes.
+        Classifica a intenção do usuário em uma das frentes.
         Usa constrained decoding para garantir JSON válido.
         """
         system = (
             "Você é um classificador de intenções. Dado o texto do usuário, "
             "retorne APENAS um JSON com os campos: "
-            "'intent' (email|decision|guidance|automation), "
+            "'intent' (chat|email|decision|guidance|automation), "
             "'confidence' (0.0 a 1.0), "
             "'reasoning' (explicação curta em português). "
+            "Use 'chat' para conversa casual, saudações, agradecimentos ou "
+            "perguntas gerais que não caibam nas outras frentes. "
             "Não gere texto fora do JSON."
         )
         raw = self.chat(user_input, system=system, format_json=True)
         try:
             return json.loads(raw)
         except json.JSONDecodeError:
-            return {"intent": "guidance", "confidence": 0.5, "reasoning": "Fallback"}
+            return {"intent": "chat", "confidence": 0.5, "reasoning": "Fallback"}
 
     def embed(self, text: str) -> list[float]:
         """Gera embeddings locais para memória de longo prazo."""
