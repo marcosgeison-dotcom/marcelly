@@ -226,3 +226,38 @@ html, body {
   0%, 100% { box-shadow: 0 0 0 0 rgba(255, 84, 112, 0.45); }
   50% { box-shadow: 0 0 0 9px rgba(255, 84, 112, 0); }
 }
+
+
+/* ---------- Iniciar com o Windows ---------- */
+.chat__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.chat__autostart {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-family: inherit;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: color 200ms, border-color 200ms, background 200ms;
+}
+.chat__autostart:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.chat__autostart--on {
+  color: var(--accent-2);
+  border-color: var(--accent-2);
+  background: rgba(0, 255, 163, 0.08);
+}
+.chat__autostart:disabled { opacity: 0.5; cursor: wait; }
+@media (max-width: 640px) {
+  .chat__autostart-text { display: none; }
+}
