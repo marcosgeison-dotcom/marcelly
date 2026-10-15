@@ -7,6 +7,7 @@
   const typing = document.getElementById('typingIndicator');
   const moodEmoji = document.querySelector('.chat__mood-emoji');
   const moodLabel = document.getElementById('moodLabel');
+  const autostartBtn = document.getElementById('autostartBtn');
 
   const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(protocol + '://' + location.host + '/ws');
@@ -57,7 +58,42 @@
     setBusy(true);
     ws.send(JSON.stringify({ message: text }));
     input.value = '';
-    input.focus();
+    // ---------- Iniciar com o Windows ----------
+  function updateAutostart(enabled) {
+    if (!autostartBtn) return;
+    autostartBtn.setAttribute('aria-pressed', String(enabled));
+    autostartBtn.classList.toggle('chat__autostart--on', enabled);
+    autostartBtn.title = enabled
+      ? 'Marcelly já inicia junto com o Windows. Clique para desativar.'
+      : 'Ativar inicialização com o Windows';
+  }
+
+  if (autostartBtn) {
+    fetch('/api/autostart')
+      .then((r) => r.json())
+      .then((data) => updateAutostart(data.enabled))
+      .catch(() => {});
+
+    autostartBtn.addEventListener('click', async () => {
+      const enabled = autostartBtn.getAttribute('aria-pressed') !== 'true';
+      autostartBtn.disabled = true;
+      try {
+        const res = await fetch('/api/autostart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled }),
+        });
+        const data = await res.json();
+        updateAutostart(data.enabled);
+      } catch (err) {
+        /* mantém o estado atual */
+      } finally {
+        autostartBtn.disabled = false;
+      }
+    });
+  }
+
+  input.focus();
   });
 
   // ---------- Comando de voz ----------
