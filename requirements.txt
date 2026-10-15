@@ -1,3 +1,7 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+websockets>=13.0
+jinja2>=3.1.0
 ollama>=0.4.0
 tydex>=0.1.0
 brier>=0.1.0
