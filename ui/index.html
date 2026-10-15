@@ -23,7 +23,7 @@
         </div>
       </div>
       <div class="chat__mood" id="moodIndicator" title="Humor do dia">
-        <span class="chat__mood-emoji">🙂</span>
+        <span class="chat__mood-emoji">U0001f642</span>
         <span class="chat__mood-label" id="moodLabel">neutro</span>
       </div>
     </header>
@@ -34,8 +34,9 @@
         <div class="msg__bubble">
           <p>Oi! Sou a <strong>Marcelly</strong>. Posso te ajudar com e-mails,
           decisões e direcionamentos — tudo rodando aqui no seu computador.</p>
-          <p class="msg__hint">Experimente: <em>"resuma meus e-mails"</em>,
-          <em>"devo aceitar a proposta?"</em> ou <em>"me dê opções para o jantar"</em>.</p>
+          <p class="msg__hint">Escreva ou clique no <em>microfone</em> e fale:
+          <em>"resuma meus e-mails"</em>, <em>"devo aceitar a proposta?"</em> ou
+          <em>"me dê opções para o jantar"</em>.</p>
         </div>
       </div>
     </main>
@@ -48,6 +49,13 @@
         aria-label="Mensagem"
         required
       />
+      <button type="button" id="micBtn" class="mic" aria-label="Falar com o Marcelly" title="Clique e fale">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="2" width="6" height="12" rx="3"/>
+          <path d="M5 10v1a7 7 0 0 0 14 0v-1"/>
+          <path d="M12 18v4"/>
+        </svg>
+      </button>
       <button type="submit" id="sendBtn" aria-label="Enviar">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
           <path d="m22 2-7 20-4-9-9-4 20-7z"/>
