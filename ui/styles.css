@@ -205,3 +205,24 @@ html, body {
   .msg { max-width: 95%; }
   .chat__mood-label { display: none; }
 }
+
+/* ---------- Microfone ---------- */
+.chat__input .mic {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--accent);
+}
+.chat__input .mic:hover {
+  border-color: var(--accent);
+  box-shadow: 0 6px 20px rgba(0, 229, 255, 0.25);
+}
+.chat__input .mic.recording {
+  color: #ff5470;
+  border-color: #ff5470;
+  animation: micPulse 1.2s infinite;
+}
+.chat__input .mic.recording:hover { box-shadow: none; }
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 84, 112, 0.45); }
+  50% { box-shadow: 0 0 0 9px rgba(255, 84, 112, 0); }
+}
