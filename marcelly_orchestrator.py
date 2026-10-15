@@ -11,7 +11,7 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 
 from config import CONFIG
-from core.intent_router import IntentRouter
+from modules.intent_router import IntentRouter
 from modules.email_module import EmailModule
 from modules.decision_module import DecisionModule
 from modules.guidance_module import GuidanceModule
