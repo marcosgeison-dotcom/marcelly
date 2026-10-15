@@ -1,0 +1,83 @@
+<!-- ================= COMO FUNCIONA ================= -->
+<section id="como-funciona" class="section" aria-labelledby="como-funciona-title">
+  <div class="container">
+    <h2 id="como-funciona-title" class="section__title">Como funciona</h2>
+    <p class="section__lead">
+      O Marcelly é um orquestrador local: entende sua intenção, aciona o módulo
+      certo e devolve a resposta — tudo no seu computador.
+    </p>
+
+    <div class="flow" role="img" aria-label="Diagrama de arquitetura do Marcelly">
+      <div class="flow__input">
+        <div class="flow__node flow__node--input">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          </svg>
+          <span>Voz / Texto</span>
+        </div>
+      </div>
+
+      <div class="flow__arrow" aria-hidden="true">↓</div>
+
+      <div class="flow__core">
+        <div class="flow__node flow__node--core">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+          </svg>
+          <span>Marcelly<br><small>Orquestrador</small></span>
+          <ul class="flow__core-list">
+            <li>Classifica intenção</li>
+            <li>Roteia para módulo</li>
+            <li>Mantém memória local</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="flow__branches">
+        <div class="flow__branch">
+          <div class="flow__node flow__node--module">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <rect x="2" y="4" width="20" height="16" rx="2"/>
+              <path d="m2 7 10 6 10-6"/>
+            </svg>
+            <span>📧 E-mail</span>
+            <small>Nmail · IMAP/SMTP</small>
+          </div>
+          <div class="flow__node flow__node--module">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+            <span>🧠 Decisão</span>
+            <small>tydex · brier</small>
+          </div>
+          <div class="flow__node flow__node--module">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/>
+            </svg>
+            <span>🧭 Direcionamento</span>
+            <small>Ollama · LLM local</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow__arrow" aria-hidden="true">↓</div>
+
+      <div class="flow__output">
+        <div class="flow__node flow__node--output">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <path d="M22 4 12 14.01l-3-3"/>
+          </svg>
+          <span>Resposta local</span>
+        </div>
+      </div>
+
+      <div class="flow__base" aria-hidden="true">
+        <span>🔒 Tudo processado no seu hardware · Ollama · Sem nuvem</span>
+      </div>
+    </div>
+  </div>
+</section>

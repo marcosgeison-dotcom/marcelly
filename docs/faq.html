@@ -1,0 +1,116 @@
+<div class="faq">
+
+  <!-- === E-mail === -->
+  <details>
+    <summary>O Marcelly lê meus e-mails?</summary>
+    <p>
+      Apenas quando você pede. O módulo de e-mail conecta-se diretamente ao seu
+      servidor IMAP (Gmail, Outlook, etc.) usando credenciais que você fornece.
+      As mensagens são processadas <strong>localmente</strong> pelo modelo de IA.
+      Nenhum conteúdo de e-mail é enviado ao Marcelly ou a terceiros.
+    </p>
+  </details>
+
+  <details>
+    <summary>Meus e-mails são armazenados em algum lugar?</summary>
+    <p>
+      Não. O Marcelly não cria banco de dados de e-mails. Os resumos e rascunhos
+      existem apenas durante a sessão, na memória do processo. Se você optar por
+      persistir algo, isso fica em arquivos locais sob seu controle.
+    </p>
+  </details>
+
+  <details>
+    <summary>Preciso dar minha senha do Gmail?</summary>
+    <p>
+      Recomendamos usar uma <strong>senha de aplicativo</strong> (não a senha
+      principal) ou OAuth2. O Marcelly lê as credenciais de variáveis de ambiente
+      em memória e nunca as grava em disco ou as envia para servidores externos.
+    </p>
+  </details>
+
+  <!-- === Decisão === -->
+  <details>
+    <summary>Como o Marcelly me ajuda a decidir sem enviar meus dados?</summary>
+    <p>
+      Ele usa modelos de decisão calibrados (<strong>tydex</strong> ou
+      <strong>brier</strong>) que rodam localmente via Ollama. O contexto que
+      você fornece fica apenas na memória do processo ou em arquivos locais,
+      se você optar por persistir.
+    </p>
+  </details>
+
+  <details>
+    <summary>O Marcelly pode tomar decisões por mim?</summary>
+    <p>
+      Não. Ele apresenta <strong>probabilidades calibradas</strong> para cada
+      opção e explica o raciocínio. A decisão final é sempre sua. O Marcelly
+      ilumina o caminho — não decide por você.
+    </p>
+  </details>
+
+  <details>
+    <summary>As probabilidades são confiáveis?</summary>
+    <p>
+      Sim. O tydex usa calibração de temperatura e recalibração isotônica para
+      corrigir o excesso de confiança típico de LLMs. Os resultados são
+      auditáveis e você pode inspecionar a distribuição completa.
+    </p>
+  </details>
+
+  <!-- === Direcionamento === -->
+  <details>
+    <summary>O que são "direcionamentos e escolhas"?</summary>
+    <p>
+      Em vez de uma resposta única, o Marcelly apresenta <strong>alternativas
+      estruturadas</strong> com prós, contras, evidências e "melhor para quem".
+      Ideal para situações em que você quer explorar caminhos antes de decidir.
+    </p>
+  </details>
+
+  <details>
+    <summary>O histórico das minhas consultas fica salvo?</summary>
+    <p>
+      Por padrão, não. Cada sessão é independente. Se você ativar memória
+      persistente (opcional), os dados ficam em um arquivo local JSON no seu
+      computador, que você pode apagar a qualquer momento.
+    </p>
+  </details>
+
+  <details>
+    <summary>Posso usar o Marcelly offline?</summary>
+    <p>
+      Sim. Após instalar os modelos via Ollama, todo o processamento — e-mail,
+      decisão e direcionamento — funciona <strong>sem internet</strong>. A
+      conexão só é necessária para baixar o instalador e os modelos
+      inicialmente.
+    </p>
+  </details>
+
+  <!-- === Geral === -->
+  <details>
+    <summary>O que o Marcelly faz com meus dados?</summary>
+    <p>
+      Nada além do que você pedir. Ele não coleta, transmite, vende nem
+      armazena dados em servidores externos. Não há telemetria, analytics ou
+      rastreamento. Todo o processamento ocorre no seu hardware.
+    </p>
+  </details>
+
+  <details>
+    <summary>É realmente gratuito?</summary>
+    <p>
+      Sim. Licença MIT, sem planos, sem assinatura, sem limites de uso.
+    </p>
+  </details>
+
+  <details>
+    <summary>Como contribuir com o projeto?</summary>
+    <p>
+      Acesse o
+      <a href="[LINK_DO_GITHUB]" target="_blank" rel="noopener noreferrer">repositório no GitHub</a>,
+      leia o guia de contribuição e abra um pull request.
+    </p>
+  </details>
+
+</div>

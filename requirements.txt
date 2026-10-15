@@ -1,0 +1,7 @@
+ollama>=0.4.0
+tydex>=0.1.0
+brier>=0.1.0
+imapclient>=3.0.0
+beautifulsoup4>=4.12.0
+python-dotenv>=1.0.0
+rich>=13.0.0

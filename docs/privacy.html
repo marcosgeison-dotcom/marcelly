@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de Privacidade — Marcelly</title>
+  <meta name="description" content="Política de Privacidade do assistente de IA local Marcelly. Processamento 100% local, sem telemetria." />
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    .legal { max-width: 760px; margin: 0 auto; padding: 48px 20px; }
+    .legal h1 { font-size: 2rem; margin-bottom: 8px; }
+    .legal h2 { font-size: 1.25rem; margin-top: 32px; color: var(--accent); }
+    .legal p, .legal li { color: var(--text-muted); line-height: 1.7; }
+    .legal ul { padding-left: 1.4rem; }
+    .legal .updated { font-size: 0.85rem; color: #6b7a94; margin-bottom: 32px; }
+    .legal a { color: var(--accent); }
+    .back { display: inline-block; margin-bottom: 24px; font-size: 0.9rem; }
+    .highlight {
+      background: var(--surface-2);
+      border-left: 3px solid var(--accent-2);
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin: 24px 0;
+    }
+    .highlight p { margin: 0; color: var(--text); }
+  </style>
+</head>
+<body>
+  <main class="legal">
+    <a class="back" href="index.html">← Voltar à página inicial</a>
+    <h1>Política de Privacidade</h1>
+    <p class="updated">Última atualização: 15 de outubro de 2026</p>
+
+    <div class="highlight">
+      <p>
+        <strong>Resumo:</strong> O Marcelly processa tudo localmente. Não
+        coletamos, transmitimos, vendemos nem armazenamos seus dados em
+        servidores externos. Não há telemetria, analytics ou rastreamento.
+      </p>
+    </div>
+
+    <h2>1. Dados que NÃO coletamos</h2>
+    <ul>
+      <li>Não coletamos seu nome, e-mail ou qualquer dado de identificação.</li>
+      <li>Não enviamos telemetria, relatórios de erro ou dados de uso.</li>
+      <li>Não usamos cookies de rastreamento ou pixels de terceiros.</li>
+      <li>Não acessamos seus e-mails, arquivos ou comandos sem sua ação explícita.</li>
+    </ul>
+
+    <h2>2. Como seus dados são processados</h2>
+    <p>
+      Todo o processamento de IA ocorre no seu hardware, via modelos locais
+      gerenciados pelo <strong>Ollama</strong>. Seus e-mails, decisões e
+      comandos <strong>nunca saem da sua máquina</strong>.
+    </p>
+
+    <h2>3. Módulo de E-mail</h2>
+    <p>
+      O módulo de e-mail conecta-se diretamente ao seu servidor IMAP/SMTP
+      (Gmail, Outlook, etc.) usando credenciais que você fornece. As mensagens
+      são analisadas localmente pelo modelo de IA. Nenhum conteúdo de e-mail
+      é enviado ao Marcelly ou a terceiros.
+    </p>
+
+    <h2>4. Módulo de Decisão</h2>
+    <p>
+      As decisões são processadas localmente por modelos de calibração
+      (tydex/brier). O contexto que você fornece fica armazenado apenas na
+      memória do processo ou em arquivos locais, se você optar por persistir.
+    </p>
+
+    <h2>5. Módulo de Direcionamento</h2>
+    <p>
+      As alternativas e recomendações são geradas localmente. Nenhum histórico
+      de consultas é compartilhado.
+    </p>
+
+    <h2>6. Requisições externas</h2>
+    <p>
+      Por padrão, o Marcelly <strong>não faz nenhuma requisição externa</strong>.
+      Se você ativar a função opcional de contagem de estrelas no GitHub
+      (comentada no código), a página fará uma chamada à API pública do GitHub.
+      Nesse caso, aplicam-se as
+      <a href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement" target="_blank" rel="noopener noreferrer">políticas do GitHub</a>.
+    </p>
+
+    <h2>7. Retenção de dados</h2>
+    <p>
+      Como não coletamos dados, não há retenção. Dados locais (memória do
+      assistente, logs, configurações) permanecem no seu computador sob seu
+      controle. Você pode apagá-los a qualquer momento.
+    </p>
+
+    <h2>8. Seus direitos (LGPD / GDPR)</h2>
+    <p>
+      Como não processamos dados pessoais em servidores, os direitos de acesso,
+      correção, exclusão e portabilidade são exercidos diretamente por você,
+      sobre os arquivos locais da sua instalação.
+    </p>
+
+    <h2>9. Contato</h2>
+    <p>
+      Para dúvidas sobre esta Política, abra uma
+      <a href="[LINK_ISSUES]" target="_blank" rel="noopener noreferrer">issue no GitHub</a>.
+    </p>
+  </main>
+</body>
+</html>
