@@ -4,7 +4,6 @@
   const input = document.getElementById('messageInput');
   const sendBtn = document.getElementById('sendBtn');
   const micBtn = document.getElementById('micBtn');
-  const typing = document.getElementById('typingIndicator');
   const statusChip = document.getElementById('statusChip');
   const statusText = document.getElementById('statusText');
   const moodEmoji = document.querySelector('.chat__mood-emoji');
@@ -61,7 +60,6 @@
   ws.addEventListener('message', (ev) => {
     const data = JSON.parse(ev.data);
     if (data.type === 'typing') {
-      typing.hidden = !data.value;
       if (!data.value) { setBusy(false); hideStatus(); }
       return;
     }
@@ -85,7 +83,10 @@
       return;
     }
     if (data.type === 'transcribing') {
-      typing.hidden = !data.value;
+      if (statusChip) {
+        statusText.textContent = 'Transcrevendo áudio…';
+        statusChip.hidden = !data.value;
+      }
       micBtn.disabled = data.value;
       return;
     }
