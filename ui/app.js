@@ -212,6 +212,79 @@
     });
   }
 
+  // ---------- O que a Marcelly sabe (painel de memória) ----------
+  const memoryBtn = document.getElementById('memoryBtn');
+  const memoryPanel = document.getElementById('memoryPanel');
+  const memoryCloseBtn = document.getElementById('memoryCloseBtn');
+  const memoryList = document.getElementById('memoryList');
+
+  function memEscape(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function closeMemoryPanel() {
+    if (memoryPanel) memoryPanel.hidden = true;
+    if (memoryBtn) {
+      memoryBtn.setAttribute('aria-pressed', 'false');
+      memoryBtn.classList.remove('chat__memory--on');
+    }
+  }
+
+  async function openMemoryPanel() {
+    memoryBtn.setAttribute('aria-pressed', 'true');
+    memoryBtn.classList.add('chat__memory--on');
+    memoryPanel.hidden = false;
+    memoryList.innerHTML = '<p class="memory-panel__empty">Carregando...</p>';
+    try {
+      const data = await fetch('/api/memory').then((r) => r.json());
+      const parts = [];
+      if (data.name) {
+        parts.push('<h3>Seu nome</h3><ul class="memory-panel__items"><li><span>' + memEscape(data.name) + '</span></li></ul>');
+      }
+      if (data.facts && data.facts.length) {
+        parts.push('<h3>Fatos que aprendi</h3><ul class="memory-panel__items">' + data.facts.map((f) =>
+          '<li><span><strong>' + memEscape(f.key) + '</strong> ' + memEscape(f.value) + '</span>' +
+          '<button type="button" class="memory-panel__forget" data-key="' + memEscape(f.key) + '" title="Esquecer este fato">✕</button></li>'
+        ).join('') + '</ul>');
+      }
+      if (data.preferences && data.preferences.length) {
+        parts.push('<h3>Preferências</h3><ul class="memory-panel__items">' + data.preferences.map((p) =>
+          '<li><span><strong>' + memEscape(p.key) + '</strong> ' + memEscape(p.value) + '</span></li>'
+        ).join('') + '</ul>');
+      }
+      if (data.patterns && data.patterns.length) {
+        parts.push('<h3>Padrões observados</h3><ul class="memory-panel__items">' + data.patterns.map((p) =>
+          '<li><span>' + memEscape(p) + '</span></li>'
+        ).join('') + '</ul>');
+      }
+      memoryList.innerHTML = parts.join('') || '<p class="memory-panel__empty">Ainda não aprendi nada sobre você. Converse comigo!</p>';
+    } catch (err) {
+      memoryList.innerHTML = '<p class="memory-panel__empty">Não consegui carregar agora.</p>';
+    }
+  }
+
+  if (memoryBtn) {
+    memoryBtn.addEventListener('click', () => {
+      if (memoryPanel.hidden) openMemoryPanel();
+      else closeMemoryPanel();
+    });
+  }
+  if (memoryCloseBtn) memoryCloseBtn.addEventListener('click', closeMemoryPanel);
+  if (memoryList) {
+    memoryList.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.memory-panel__forget');
+      if (!btn) return;
+      await fetch('/api/memory/forget', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: btn.dataset.key }),
+      });
+      openMemoryPanel();
+    });
+  }
+
   input.focus();
 
   // ---------- Comando de voz ----------

@@ -30,6 +30,16 @@
           </svg>
           <span class="chat__history-text">Histórico</span>
         </button>
+        <button type="button" class="chat__memory" id="memoryBtn" aria-pressed="false" title="Ver o que a Marcelly sabe sobre você">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
+            <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
+            <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/>
+            <path d="M17.5 13h3"/>
+            <path d="M3.5 13h3"/>
+          </svg>
+          <span class="chat__memory-text">Memória</span>
+        </button>
         <button type="button" class="chat__debug" id="debugBtn" aria-pressed="false" title="Ativar modo de depuração">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="m8 2 1.88 1.88"/>
@@ -57,6 +67,15 @@
         </div>
       </div>
     </header>
+
+    <aside class="memory-panel" id="memoryPanel" hidden aria-label="O que a Marcelly sabe sobre você">
+      <div class="memory-panel__head">
+        <span aria-hidden="true">🧠</span>
+        <span class="memory-panel__note">O que a Marcelly sabe sobre você — salvo apenas no seu computador.</span>
+        <button type="button" class="memory-panel__close" id="memoryCloseBtn" title="Fechar">✕</button>
+      </div>
+      <div class="memory-panel__list" id="memoryList"></div>
+    </aside>
 
     <div class="storage-banner" id="storageBanner" hidden role="alert">
       <span class="storage-banner__icon">💾</span>

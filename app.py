@@ -61,6 +61,24 @@ async def update_debug(enabled: bool = Body(..., embed=True)):
     DEBUG.set_enabled(enabled)
     return {"enabled": DEBUG.enabled, "events": DEBUG.recent(100)}
 
+@app.get("/api/memory")
+async def memory_overview():
+    """Tudo que a Marcelly aprendeu sobre você (salvo apenas no seu computador)."""
+    memory = orchestrator.memory
+    return {
+        "name": memory.profile.get("name", ""),
+        "facts": [{"key": f.key, "value": f.value} for f in memory.get_facts()],
+        "preferences": memory.get_all_preferences(),
+        "patterns": memory.get_patterns(),
+    }
+
+
+@app.post("/api/memory/forget")
+async def memory_forget(key: str = Body(..., embed=True)):
+    """Faz a Marcelly esquecer um fato aprendido."""
+    return {"ok": orchestrator.memory.forget_fact(key)}
+
+
 @app.get("/api/stats")
 async def stats():
     """Uso de CPU e RAM em tempo real (sistema + processo do Marcelly)."""

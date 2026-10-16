@@ -157,6 +157,17 @@ class Memory:
         ).fetchall()
         return [Fact(**dict(r)) for r in rows]
 
+    def get_all_preferences(self) -> list:
+        rows = self.conn.execute(
+            "SELECT key, value FROM preferences ORDER BY updated_at DESC"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def forget_fact(self, key: str) -> bool:
+        cur = self.conn.execute("DELETE FROM facts WHERE key = ?", (key,))
+        self.conn.commit()
+        return cur.rowcount > 0
+
     # ---------- Padrões ----------
     def detect_patterns(self):
         """Detecta padrões simples (intenção + horário recorrentes)."""
