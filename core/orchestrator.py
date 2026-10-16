@@ -47,6 +47,7 @@ class MarcellyOrchestrator:
         """Configuração inicial: garante Ollama instalado, rodando e com os modelos."""
         import shutil
         import subprocess
+        import sys
         import time
         from rich.prompt import Confirm
         from ollama import Client
@@ -70,6 +71,24 @@ class MarcellyOrchestrator:
             have = _installed()
             return [m for m in wanted if not any(h == m or h.startswith(m) for h in have)]
 
+        def _interactive() -> bool:
+            """Há console/teclado disponível? (falso quando roda oculto via pythonw)"""
+            try:
+                return sys.stdin is not None and sys.stdin.isatty() and sys.stdout is not None and sys.stdout.isatty()
+            except Exception:
+                return False
+
+        def _run_cmd(cmd: list) -> int:
+            """Executa um comando; em modo oculto, sem janela de console e sem stdin."""
+            if _interactive():
+                return subprocess.run(cmd, check=False).returncode
+            flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+            return subprocess.run(
+                cmd, check=False, stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                creationflags=flags,
+            ).returncode
+
         missing = _missing()
         if _server_ok() and not missing:
             return True
@@ -83,14 +102,14 @@ class MarcellyOrchestrator:
                 "Agora vou instalar, iniciar e baixar os modelos pela primeira vez.",
                 border_style="yellow", title="Configuração inicial",
             ))
-            if not Confirm.ask("Continuar com a configuração agora?", default=True):
+            # Sem console (execução oculta) não há teclado: segue com a configuração automaticamente
+            if _interactive() and not Confirm.ask("Continuar com a configuração agora?", default=True):
                 console.print("[dim]Sem problema — instale depois em https://ollama.com/download[/dim]")
                 return False
             if not shutil.which("ollama"):
-                subprocess.run(
+                _run_cmd(
                     ["winget", "install", "--id", "Ollama.Ollama", "-e",
                      "--accept-source-agreements", "--accept-package-agreements"],
-                    check=False,
                 )
             if not _server_ok():
                 subprocess.Popen(
@@ -113,7 +132,7 @@ class MarcellyOrchestrator:
         for model in missing:
             console.print(f"[cyan]Baixando modelo: {model}[/cyan]")
             try:
-                result = subprocess.run(["ollama", "pull", model], check=False)
+                result = _run_cmd(["ollama", "pull", model])
                 if result.returncode != 0 or model in _missing():
                     failed.append(model)
             except FileNotFoundError:
