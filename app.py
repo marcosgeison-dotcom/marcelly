@@ -18,6 +18,7 @@ from fastapi import Body, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from core.debug import DEBUG
 from core.orchestrator import MarcellyOrchestrator
 from core.startup import create_desktop_shortcut, get_autostart, set_autostart
 from core.voice import VoiceEngine
@@ -48,6 +49,28 @@ async def update_autostart(enabled: bool = Body(..., embed=True)):
     return {"enabled": get_autostart() if ok else enabled, "ok": ok}
 
 
+@app.get("/api/debug")
+async def debug_state():
+    return {"enabled": DEBUG.enabled, "events": DEBUG.recent(100)}
+
+
+@app.post("/api/debug")
+async def update_debug(enabled: bool = Body(..., embed=True)):
+    DEBUG.set_enabled(enabled)
+    return {"enabled": DEBUG.enabled, "events": DEBUG.recent(100)}
+
+
+async def _log_and_send_debug(ws: WebSocket, started: float, response: dict):
+    event = DEBUG.log(
+        "response",
+        duration_ms=int((time.time() - started) * 1000),
+        intent=(response.get("meta") or {}).get("intent"),
+        chars=len(response.get("text", "")),
+    )
+    if DEBUG.enabled:
+        await ws.send_json({"type": "debug", "event": event})
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
@@ -69,6 +92,7 @@ async def websocket_endpoint(ws: WebSocket):
                     audio = base64.b64decode(audio_b64)
                     text = await asyncio.to_thread(voice.transcribe, audio)
                 except Exception as e:
+                    DEBUG.log("error", where="voz", error=str(e))
                     await ws.send_json({"type": "transcribing", "value": False})
                     await ws.send_json({
                         "type": "message",
@@ -80,16 +104,20 @@ async def websocket_endpoint(ws: WebSocket):
                 if not text:
                     await ws.send_json({
                         "type": "message",
-                        "text": "U0001f399 Não entendi o que você disse. Tente falar de novo.",
+                        "text": "🎙️ Não entendi o que você disse. Tente falar de novo.",
                         "meta": {"intent": "voice_error"},
                     })
                     continue
                 await ws.send_json({"type": "transcript", "text": text})
                 await ws.send_json({"type": "typing", "value": True})
+                DEBUG.log("request", source="voz", message=text)
+                started = time.time()
                 try:
                     response = await asyncio.to_thread(orchestrator.handle, text)
                 except Exception as e:
                     response = {"text": f"⚠️ Algo deu errado: {e}", "meta": {"intent": "error"}}
+                    DEBUG.log("error", where="voz", error=str(e))
+                await _log_and_send_debug(ws, started, response)
                 await ws.send_json({"type": "typing", "value": False})
                 await ws.send_json({"type": "message", **response})
                 if payload.get("speak", True) and response.get("text"):
@@ -102,10 +130,14 @@ async def websocket_endpoint(ws: WebSocket):
                 continue
 
             await ws.send_json({"type": "typing", "value": True})
+            DEBUG.log("request", source="texto", message=user_message)
+            started = time.time()
             try:
                 response = await asyncio.to_thread(orchestrator.handle, user_message)
             except Exception as e:
                 response = {"text": f"⚠️ Algo deu errado: {e}", "meta": {"intent": "error"}}
+                DEBUG.log("error", where="texto", error=str(e))
+            await _log_and_send_debug(ws, started, response)
             await ws.send_json({"type": "typing", "value": False})
             await ws.send_json({"type": "message", **response})
     except WebSocketDisconnect:
