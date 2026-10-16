@@ -12,6 +12,7 @@ from pathlib import Path
 from config import DATA_DIR
 from core.debug import DEBUG
 from core.ollama_client import OllamaClient
+from core.resilience import chat_with_retry, simple_plan, try_alternatives, with_email_alternatives
 
 DB_PATH = DATA_DIR / "marcelly.db"
 
@@ -33,21 +34,23 @@ class EmailAgent(BaseAgent):
     def __init__(self, email_module):
         self.email = email_module
 
-    def run(self, request: str) -> str:
+        def run(self, request: str) -> str:
         if "resumo" in request.lower() or "brief" in request.lower():
-            return self.email.daily_brief()
-        try:
-            summaries = self.email.fetch_and_classify(limit=10)
-        except RuntimeError:
-            return self.email.setup_guide()
-        lines = [f"📧 **{len(summaries)} e-mails recentes:**", ""]
-        for s in summaries:
-            lines.append(f"• **[{s.category}]** {s.sender}: {s.subject}")
-            lines.append(f"  {s.summary}")
-            if s.draft_reply:
-                lines.append(f"  💬 _Rascunho:_ {s.draft_reply[:140]}...")
-        return "\n".join(lines)
+            body, error = with_email_alternatives(self.email, self.email.daily_brief)
+            return body if error is None else error
 
+        def _list_emails() -> str:
+            summaries = self.email.fetch_and_classify(limit=10)
+            lines = [f"\U0001f4e7 **{len(summaries)} e-mails recentes:**", ""]
+            for s in summaries:
+                lines.append(f"\u2022 **[{s.category}]** {s.sender}: {s.subject}")
+                lines.append(f"  {s.summary}")
+                if s.draft_reply:
+                    lines.append(f"  \U0001f4ac _Rascunho:_ {s.draft_reply[:140]}...")
+            return "\n".join(lines)
+
+        body, error = with_email_alternatives(self.email, _list_emails)
+        return body if error is None else error
 
 class PlannerAgent(BaseAgent):
     name = "Agente Planejador"
@@ -57,14 +60,16 @@ class PlannerAgent(BaseAgent):
     def __init__(self):
         self.llm = OllamaClient()
 
-    def run(self, request: str) -> str:
+        def run(self, request: str) -> str:
         system = (
-            "Você é um agente planejador. Divida o pedido do usuário em um plano "
-            "curto e prático: de 3 a 6 passos numerados, cada um com uma ação "
-            "concreta. Responda em português, sem introduções."
+            "Voc\u00ea \u00e9 um agente planejador. Divida o pedido do usu\u00e1rio em um plano "
+            "curto e pr\u00e1tico: de 3 a 6 passos numerados, cada um com uma a\u00e7\u00e3o "
+            "concreta. Responda em portugu\u00eas, sem introdu\u00e7\u00f5es."
         )
-        return self.llm.chat(request, system=system).strip()
-
+        return try_alternatives("Agente Planejador", [
+            ("plano pelo modelo local", lambda: self.llm.chat(request, system=system).strip()),
+            ("plano local simplificado", lambda: simple_plan(request)),
+        ])
 
 class ReminderAgent(BaseAgent):
     name = "Agente de Lembretes"
@@ -101,7 +106,7 @@ class ReminderAgent(BaseAgent):
             "{'text': 'o que lembrar', 'due': 'data/hora em texto livre ou null'}."
         )
         try:
-            raw = self.llm.chat(request, system=system, format_json=True)
+            raw = chat_with_retry(self.llm, request, system=system, format_json=True)
             data = json.loads(raw)
         except Exception:
             data = {"text": request, "due": None}
@@ -133,7 +138,7 @@ class ReminderAgent(BaseAgent):
             "{'text': 'texto do lembrete a concluir'}."
         )
         try:
-            raw = self.llm.chat(request, system=system, format_json=True)
+            raw = chat_with_retry(self.llm, request, system=system, format_json=True)
             text = json.loads(raw).get("text", "")
         except Exception:
             text = ""
@@ -156,21 +161,23 @@ class PatternsAgent(BaseAgent):
     def __init__(self, memory):
         self.memory = memory
 
-    def run(self, request: str) -> str:
-        patterns = self.memory.get_patterns(5)
-        facts = self.memory.get_facts()[:5]
-        if not patterns and not facts:
-            return (
-                "Ainda não tenho padrões suficientes sobre você. "
-                "Converse comigo por alguns dias e analiso seus hábitos."
-            )
-        lines = ["📈 **O que aprendi sobre você:**", ""]
-        for p in patterns:
-            lines.append(f"• {p}")
-        for f in facts:
-            lines.append(f"• {f.key}: {f.value}")
-        return "\n".join(lines)
+        def run(self, request: str) -> str:
+        def _collect() -> str:
+            patterns = self.memory.get_patterns(5)
+            facts = self.memory.get_facts()[:5]
+            if not patterns and not facts:
+                return (
+                    "Ainda n\u00e3o tenho padr\u00f5es suficientes sobre voc\u00ea. "
+                    "Converse comigo por alguns dias e analiso seus h\u00e1bitos."
+                )
+            lines = ["\U0001f4ca **O que aprendi sobre voc\u00ea:**", ""]
+            for p in patterns:
+                lines.append(f"\u2022 {p}")
+            for f in facts:
+                lines.append(f"\u2022 {f.key}: {f.value}")
+            return "\n".join(lines)
 
+        return try_alternatives("Agente de Padr\u00f5es", [("ler a mem\u00f3ria local", _collect)])
 
 class AgentRegistry:
     """Catálogo dos agentes instalados junto com o executável."""
