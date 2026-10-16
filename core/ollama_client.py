@@ -20,6 +20,7 @@ class OllamaClient:
         system: str = "",
         model: Optional[str] = None,
         format_json: bool = False,
+        max_tokens: Optional[int] = None,
     ) -> str:
         """
         Envia uma mensagem ao modelo local.
@@ -42,7 +43,7 @@ class OllamaClient:
                     "temperature": CONFIG.ollama.temperature,
                     "num_thread": CONFIG.ollama.num_thread,
                     "num_ctx": 1024 if rapid else 2048,
-                    "num_predict": 160 if rapid else 400,
+                    "num_predict": max_tokens or (160 if rapid else 400),
                 },
                 format="json" if format_json else "",
                 keep_alive=-1  # modelo permanece carregado: sem recarga a cada volta,
