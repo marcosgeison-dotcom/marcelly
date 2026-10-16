@@ -123,28 +123,6 @@ class Personality:
             return candidate
         return None
 
-
-PERIOD_HELLO = {
-    "morning": "Bom dia",
-    "afternoon": "Boa tarde",
-    "evening": "Boa noite",
-    "night": "Boa noite",
-}
-
-DAY_NOTE = {
-    "monday": "Começando a semana com o pé direito!",
-    "friday": "Sexta-feira! Dia de fechar a semana leve.",
-    "saturday": "Sábado é dia de ritmo mais tranquilo.",
-    "sunday": "Domingo: recarregar para a semana que vem.",
-}
-
-THANKS_REPLIES = [
-    "Por nada! Estou por aqui sempre que precisar.",
-    "De nada! Foi um prazer ajudar.",
-    "Por nada! Precisando, é só chamar.",
-]
-
-
     def instant_reply(self, mood: MoodContext, user_name: str = "", user_text: str = "") -> str:
         """Resposta imediata para saudações e agradecimentos — sem chamar o modelo."""
         if re.search(r"\b(obrigad[oa]|valeu|brigad[oa])\b", user_text.lower()):
@@ -165,3 +143,24 @@ THANKS_REPLIES = [
             lines.append(mood_note)
         lines.append("Como posso ajudar?")
         return " ".join(lines)
+
+
+PERIOD_HELLO = {
+    "morning": "Bom dia",
+    "afternoon": "Boa tarde",
+    "evening": "Boa noite",
+    "night": "Boa noite",
+}
+
+DAY_NOTE = {
+    "monday": "Começando a semana com o pé direito!",
+    "friday": "Sexta-feira! Dia de fechar a semana leve.",
+    "saturday": "Sábado é dia de ritmo mais tranquilo.",
+    "sunday": "Domingo: recarregar para a semana que vem.",
+}
+
+THANKS_REPLIES = [
+    "Por nada! Estou por aqui sempre que precisar.",
+    "De nada! Foi um prazer ajudar.",
+    "Por nada! Precisando, é só chamar.",
+]
