@@ -22,7 +22,7 @@ KEYWORDS = {
         r"\b(obrigad[oa]|valeu|brigad[oa])\b",
     ],
     "email": [
-        r"\b(e-?mail|inbox|caixa de entrada|gmail|outlook|imap|responder|rascunho)\b",
+        r"\b(e-?mails?|inbox|caixa de entrada|gmail|outlook|imap|responder|rascunho)\b",
         r"\b(mensagem|correio|enviar|receber)\b",
     ],
     "decision": [
