@@ -4,6 +4,20 @@
   const input = document.getElementById('messageInput');
   const sendBtn = document.getElementById('sendBtn');
   const micBtn = document.getElementById('micBtn');
+  const attachBtn = document.getElementById('attachBtn');
+  const fileInput = document.getElementById('fileInput');
+  const attachChip = document.getElementById('attachChip');
+  const attachName = document.getElementById('attachName');
+  const attachRemoveBtn = document.getElementById('attachRemoveBtn');
+
+  let attachedFile = null;
+
+  function clearAttachment() {
+    attachedFile = null;
+    if (attachChip) attachChip.hidden = true;
+    if (attachBtn) attachBtn.classList.remove('has-file');
+    if (fileInput) fileInput.value = '';
+  }
   const statusChip = document.getElementById('statusChip');
   const statusText = document.getElementById('statusText');
   const moodEmoji = document.querySelector('.chat__mood-emoji');
@@ -25,6 +39,7 @@
     busy = value;
     sendBtn.disabled = value;
     micBtn.disabled = value;
+    if (attachBtn) attachBtn.disabled = value;
   }
 
   // ---------- Streaming + agentes em ação ----------
@@ -116,17 +131,53 @@
     addMessage('bot', '\u26a0\ufe0f Conex\u00e3o encerrada. Recarregue a p\u00e1gina para reconectar.');
   });
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (busy) return;
     const text = input.value.trim();
-    if (!text) return;
-    addMessage('user', text);
+    if (!text && !attachedFile) return;
+
+    const payload = { message: text };
+    let shown = text;
+    if (attachedFile) {
+      try {
+        payload.attachment = { name: attachedFile.name, content_b64: await blobToBase64(attachedFile) };
+      } catch (err) {
+        addMessage('bot', '\u26a0\ufe0f N\u00e3o consegui ler o arquivo selecionado.');
+        return;
+      }
+      shown = (text ? text + '\n' : '') + '\ud83d\udcce ' + attachedFile.name;
+    }
+    addMessage('user', shown);
     setBusy(true);
-    ws.send(JSON.stringify({ message: text }));
+    ws.send(JSON.stringify(payload));
     resetStream();
     input.value = '';
-    // ---------- Iniciar com o Windows ----------
+    clearAttachment();
+  });
+
+  // ---------- Anexo de arquivos ----------
+  if (attachBtn && fileInput) {
+    attachBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        addMessage('bot', '\u26a0\ufe0f Arquivo muito grande. O limite para anexos \u00e9 2 MB.');
+        clearAttachment();
+        return;
+      }
+      attachedFile = file;
+      if (attachName) attachName.textContent = file.name;
+      if (attachChip) attachChip.hidden = false;
+      attachBtn.classList.add('has-file');
+    });
+    if (attachRemoveBtn) {
+      attachRemoveBtn.addEventListener('click', () => clearAttachment());
+    }
+  }
+
+  // ---------- Iniciar com o Windows ----------
   function updateAutostart(enabled) {
     if (!autostartBtn) return;
     autostartBtn.setAttribute('aria-pressed', String(enabled));
@@ -162,7 +213,6 @@
   }
 
   input.focus();
-  });
 
   // ---------- Comando de voz ----------
   micBtn.addEventListener('click', async () => {
