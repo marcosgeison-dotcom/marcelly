@@ -17,7 +17,8 @@ class OllamaConfig:
 
 @dataclass
 class EmailConfig:
-    """Configuração de e-mail. Senhas nunca são gravadas em disco."""
+    """Configuração de e-mail: por variáveis de ambiente ou pelo chat
+    (salva apenas neste computador, em data/email_config.json)."""
     imap_host: Optional[str] = os.getenv("IMAP_HOST")
     imap_port: int = int(os.getenv("IMAP_PORT", "993"))
     smtp_host: Optional[str] = os.getenv("SMTP_HOST")
