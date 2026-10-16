@@ -10,6 +10,8 @@ from rich.console import Console
 from rich.panel import Panel
 
 from config import CONFIG
+from core.agents import AgentRegistry
+from core.debug import DEBUG
 from core.intent_router import IntentRouter
 from core.memory import Memory
 from core.mood_detector import MoodDetector
@@ -37,6 +39,9 @@ class MarcellyOrchestrator:
         self.decision = DecisionModule()
         self.guidance = GuidanceModule()
         self.chat = ChatModule()
+
+        # Agentes locais — instalados junto com o executável
+        self.agents = AgentRegistry(memory=self.memory, email_module=self.email)
 
     def _ensure_ollama(self) -> bool:
         """Configuração inicial: garante Ollama instalado, rodando e com os modelos."""
@@ -129,12 +134,20 @@ class MarcellyOrchestrator:
         { "text": str, "meta": { "intent", "mood", ... } }
         """
         mood_ctx = self.mood.detect(user_input)
+        DEBUG.log("mood", mood=mood_ctx.mood, time_of_day=mood_ctx.time_of_day)
         routing = self.router.route(user_input)
+        DEBUG.log(
+            "routing",
+            intent=routing.intent,
+            confidence=routing.confidence,
+            reasoning=routing.reasoning,
+        )
 
         try:
             self.memory.learn_facts(user_input)
         except Exception as e:
             log.warning(f"Falha ao aprender fatos: {e}")
+            DEBUG.log("error", where="memoria.fatos", error=str(e))
 
         if routing.intent == "email":
             text = self._handle_email(user_input, mood_ctx)
@@ -142,6 +155,8 @@ class MarcellyOrchestrator:
             text = self._handle_decision(user_input, mood_ctx)
         elif routing.intent == "guidance":
             text = self._handle_guidance(user_input, mood_ctx)
+        elif routing.intent == "agents":
+            text = self._handle_agents(user_input, mood_ctx)
         else:
             text = self._handle_chat(user_input, mood_ctx)
 
@@ -155,6 +170,7 @@ class MarcellyOrchestrator:
             self.memory.detect_patterns()
         except Exception as e:
             log.warning(f"Falha ao registrar interação: {e}")
+            DEBUG.log("error", where="memoria.interacao", error=str(e))
 
         return {
             "text": text,
@@ -191,6 +207,10 @@ class MarcellyOrchestrator:
         if joke:
             parts.append(f"\n\n_Ps: {joke}_")
         return "\n".join(parts)
+
+    def _handle_agents(self, user_input: str, mood_ctx) -> str:
+        body = self.agents.dispatch(user_input)
+        return self._wrap_with_personality(body, mood_ctx, topic="agents")
 
     def _handle_email(self, user_input: str, mood_ctx) -> str:
         if "resumo" in user_input.lower() or "brief" in user_input.lower():
