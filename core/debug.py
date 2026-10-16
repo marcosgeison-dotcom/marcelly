@@ -9,7 +9,8 @@ import time
 from collections import deque
 from pathlib import Path
 
-DATA_DIR = Path(__file__).parent.parent / "data"
+from config import DATA_DIR
+
 LOG_PATH = DATA_DIR / "debug.log"
 STATE_PATH = DATA_DIR / "debug_state.json"
 
