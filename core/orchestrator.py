@@ -69,7 +69,7 @@ class MarcellyOrchestrator:
         from rich.prompt import Confirm
         from ollama import Client
 
-        wanted = [CONFIG.ollama.model, CONFIG.ollama.decision_model, "nomic-embed-text"]
+        wanted = list(dict.fromkeys([CONFIG.ollama.model, CONFIG.ollama.decision_model, "nomic-embed-text"]))
 
         def _server_ok() -> bool:
             try:
