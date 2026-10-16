@@ -40,7 +40,7 @@ class OllamaClient:
                     "num_predict": 400,
                 },
                 format="json" if format_json else "",
-                keep_alive="30m",
+                keep_alive=-1  # modelo permanece carregado: sem recarga a cada volta,
             )
             return response.message.content
         except ResponseError as e:
@@ -63,7 +63,7 @@ class OllamaClient:
                     "num_predict": 400,
                 },
                 stream=True,
-                keep_alive="30m",
+                keep_alive=-1  # modelo permanece carregado: sem recarga a cada volta,
             )
             for part in stream:
                 piece = part.message.content
@@ -98,7 +98,7 @@ class OllamaClient:
         response = self.client.embed(
             model="nomic-embed-text",
             input=text,
-            keep_alive="30m",
+            keep_alive=-1  # modelo permanece carregado: sem recarga a cada volta,
         )
         return response["embeddings"][0]
 
@@ -109,7 +109,7 @@ class OllamaClient:
                 model=CONFIG.ollama.model,
                 messages=[{"role": "user", "content": "ok"}],
                 options={"num_predict": 1, "num_ctx": 512},
-                keep_alive="30m",
+                keep_alive=-1  # modelo permanece carregado: sem recarga a cada volta,
             )
         except Exception:
             pass
