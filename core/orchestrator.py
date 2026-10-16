@@ -189,7 +189,8 @@ class MarcellyOrchestrator:
         # Saudações e mensagens casuais não têm fatos: pula a extração (chamada de LLM)
         # No modo rapido, pula a extracao de fatos: e uma chamada extra de LLM
         if (
-            not PERF.is_accelerated()
+            routing.intent == "chat"
+            and not PERF.is_accelerated()
             and not self._is_casual(user_input)
             and not self._contains_credentials(user_input)
         ):
