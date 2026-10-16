@@ -247,6 +247,8 @@ if __name__ == "__main__":
 
     if not orchestrator._ensure_ollama():
         sys.exit(1)
+    # Pré-carrega o modelo em segundo plano — primeira mensagem rápida
+    threading.Thread(target=orchestrator.llm.warmup, daemon=True).start()
     # Atalho na Área de Trabalho + início junto com o Windows (1ª execução)
     create_desktop_shortcut()
     if not get_autostart():
