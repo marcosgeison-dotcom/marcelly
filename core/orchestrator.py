@@ -165,11 +165,15 @@ class MarcellyOrchestrator:
             ))
         return _server_ok() and not failed
 
-    def handle(self, user_input: str, emit=None) -> dict[str, Any]:
+    def handle(self, user_input: str, emit=None, attachment: dict | None = None) -> dict[str, Any]:
         """
         Processa uma entrada e devolve:
         { "text": str, "meta": { "intent", "mood", ... } }
+        Quando attachment vem preenchido ({ "name", "text" }), o arquivo
+        anexado é analisado no módulo de conversa.
         """
+        if attachment and attachment.get("text"):
+            return self._handle_with_attachment(user_input, attachment, emit)
         PERF.start("roteamento")
         mood_ctx = self.mood.detect(user_input)
         DEBUG.log("mood", mood=mood_ctx.mood, time_of_day=mood_ctx.time_of_day)
@@ -248,6 +252,31 @@ class MarcellyOrchestrator:
             "meta": {
                 "intent": routing.intent,
                 "confidence": routing.confidence,
+                "mood": mood_ctx.mood,
+                "time_of_day": mood_ctx.time_of_day,
+                "day_of_week": mood_ctx.day_of_week,
+            },
+        }
+
+    def _handle_with_attachment(self, user_input: str, attachment: dict, emit=None) -> dict[str, Any]:
+        """Arquivo anexado: análise direta pelo módulo de conversa (sem roteamento)."""
+        PERF.start("roteamento")
+        question = (user_input or "").strip() or "Faça um resumo do arquivo anexado com os pontos principais."
+        mood_ctx = self.mood.detect(question)
+        DEBUG.log("mood", mood=mood_ctx.mood, time_of_day=mood_ctx.time_of_day)
+        augmented = (
+            f"{question}\n\n"
+            f"[Arquivo anexado: {attachment.get('name', 'arquivo')}]\n"
+            "Conteúdo:\n"
+            f"{attachment['text']}"
+        )
+        text = self._handle_chat(augmented, mood_ctx, emit)
+        PERF.finish()
+        self._remember_async(question, "chat", mood_ctx.mood, text)
+        return {
+            "text": text,
+            "meta": {
+                "intent": "chat",
                 "mood": mood_ctx.mood,
                 "time_of_day": mood_ctx.time_of_day,
                 "day_of_week": mood_ctx.day_of_week,
