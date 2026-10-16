@@ -577,5 +577,37 @@
     }
   }
 
+  // ---------- Monitor de recursos ----------
+  const statsToggle = document.getElementById('statsToggle');
+  const statsBody = document.getElementById('statsBody');
+  const statsCpu = document.getElementById('statsCpu');
+  const statsCpuVal = document.getElementById('statsCpuVal');
+  const statsRam = document.getElementById('statsRam');
+  const statsRamVal = document.getElementById('statsRamVal');
+  const statsNote = document.getElementById('statsNote');
+
+  async function refreshStats() {
+    try {
+      const s = await fetch('/api/stats').then((r) => r.json());
+      if (statsCpu) statsCpu.style.width = Math.min(100, Math.round(s.cpu)) + '%';
+      if (statsCpuVal) statsCpuVal.textContent = Math.round(s.cpu) + '%';
+      if (statsRam) statsRam.style.width = Math.round(s.ram_percent) + '%';
+      if (statsRamVal) statsRamVal.textContent = Math.round(s.ram_percent) + '%';
+      if (statsNote) {
+        statsNote.textContent = 'Marcelly: ' + s.app_ram_mb + ' MB \u00b7 RAM '
+          + s.ram_used_gb + '/' + s.ram_total_gb + ' GB';
+      }
+    } catch (e) { /* servidor indisponível: tenta de novo no próximo ciclo */ }
+  }
+  if (statsToggle) {
+    statsToggle.addEventListener('click', () => {
+      const abrir = statsBody.hidden;
+      statsBody.hidden = !abrir;
+      statsToggle.setAttribute('aria-expanded', String(abrir));
+    });
+  }
+  refreshStats();
+  setInterval(refreshStats, 2000);
+
   input.focus();
 })();

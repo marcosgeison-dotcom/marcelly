@@ -151,7 +151,7 @@ class MarcellyOrchestrator:
             console.print(f"[cyan]Baixando modelo: {model}[/cyan]")
             try:
                 result = _run_cmd(["ollama", "pull", model])
-                if result.returncode != 0 or model in _missing():
+                if result != 0 or model in _missing():
                     failed.append(model)
             except FileNotFoundError:
                 failed.append(model)

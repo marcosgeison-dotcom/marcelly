@@ -150,6 +150,25 @@
       <div class="debug-panel__list" id="debugList" aria-live="polite"></div>
     </aside>
 
+    <div class="stats-widget" id="statsWidget">
+      <button type="button" class="stats-widget__toggle" id="statsToggle" aria-expanded="true" title="Monitor de CPU e RAM">
+        <span class="stats-widget__dot" aria-hidden="true"></span> Monitor
+      </button>
+      <div class="stats-widget__body" id="statsBody">
+        <div class="stats-widget__row">
+          <span class="stats-widget__label">CPU</span>
+          <div class="stats-widget__bar"><div class="stats-widget__fill" id="statsCpu"></div></div>
+          <span class="stats-widget__value" id="statsCpuVal">0%</span>
+        </div>
+        <div class="stats-widget__row">
+          <span class="stats-widget__label">RAM</span>
+          <div class="stats-widget__bar"><div class="stats-widget__fill stats-widget__fill--ram" id="statsRam"></div></div>
+          <span class="stats-widget__value" id="statsRamVal">0%</span>
+        </div>
+        <p class="stats-widget__note" id="statsNote">Marcelly: 0 MB</p>
+      </div>
+    </div>
+
     <div class="chat__agent" id="statusChip" hidden>
       <span class="chat__agent-dot" aria-hidden="true"></span>
       <span id="statusText">…</span>

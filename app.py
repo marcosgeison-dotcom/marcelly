@@ -14,6 +14,7 @@ import webbrowser
 from pathlib import Path
 
 import uvicorn
+import psutil
 from fastapi import Body, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -59,6 +60,20 @@ async def debug_state():
 async def update_debug(enabled: bool = Body(..., embed=True)):
     DEBUG.set_enabled(enabled)
     return {"enabled": DEBUG.enabled, "events": DEBUG.recent(100)}
+
+@app.get("/api/stats")
+async def stats():
+    """Uso de CPU e RAM em tempo real (sistema + processo do Marcelly)."""
+    mem = psutil.virtual_memory()
+    proc = psutil.Process()
+    return {
+        "cpu": psutil.cpu_percent(interval=None),
+        "ram_percent": mem.percent,
+        "ram_used_gb": round(mem.used / (1024 ** 3), 1),
+        "ram_total_gb": round(mem.total / (1024 ** 3), 1),
+        "app_ram_mb": round(proc.memory_info().rss / (1024 ** 2)),
+    }
+
 
 @app.get("/api/history")
 async def history(day: str = None):
