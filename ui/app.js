@@ -8,6 +8,10 @@
   const moodEmoji = document.querySelector('.chat__mood-emoji');
   const moodLabel = document.getElementById('moodLabel');
   const autostartBtn = document.getElementById('autostartBtn');
+  const debugBtn = document.getElementById('debugBtn');
+  const debugPanel = document.getElementById('debugPanel');
+  const debugList = document.getElementById('debugList');
+  const debugClearBtn = document.getElementById('debugClearBtn');
 
   const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(protocol + '://' + location.host + '/ws');
@@ -38,6 +42,10 @@
       addMessage('user', data.text);
       return;
     }
+    if (data.type === 'debug') {
+      addDebugEvent(data.event);
+      return;
+    }
     if (data.type === 'message') {
       addMessage('bot', data.text);
       if (data.meta && data.meta.mood) updateMood(data.meta.mood);
@@ -64,8 +72,8 @@
     autostartBtn.setAttribute('aria-pressed', String(enabled));
     autostartBtn.classList.toggle('chat__autostart--on', enabled);
     autostartBtn.title = enabled
-      ? 'Marcelly já inicia junto com o Windows. Clique para desativar.'
-      : 'Ativar inicialização com o Windows';
+      ? 'Marcelly j\u00e1 inicia junto com o Windows. Clique para desativar.'
+      : 'Ativar inicializa\u00e7\u00e3o com o Windows';
   }
 
   if (autostartBtn) {
@@ -86,7 +94,7 @@
         const data = await res.json();
         updateAutostart(data.enabled);
       } catch (err) {
-        /* mantém o estado atual */
+        /* mant\u00e9m o estado atual */
       } finally {
         autostartBtn.disabled = false;
       }
@@ -169,6 +177,105 @@
     };
     moodEmoji.textContent = map[mood] || '\U0001f642';
     moodLabel.textContent = mood;
+  }
+
+  // ---------- Modo de depuração ----------
+  const KIND_LABEL = {
+    request: 'entrada',
+    response: 'resposta',
+    routing: 'roteamento',
+    mood: 'humor',
+    module: 'm\u00f3dulo',
+    agents: 'agente',
+    error: 'erro',
+    debug_mode: 'depura\u00e7\u00e3o',
+  };
+
+  function fmtTime(ts) {
+    return new Date(ts * 1000).toLocaleTimeString('pt-BR');
+  }
+
+  function debugDetail(ev) {
+    if (ev.kind === 'request') return (ev.source || '') + ': ' + (ev.message || '');
+    if (ev.kind === 'response') {
+      return 'intent=' + (ev.intent || '?') + ' \u00b7 ' + (ev.duration_ms || 0) + 'ms \u00b7 ' + (ev.chars || 0) + ' caracteres';
+    }
+    if (ev.kind === 'routing') return ev.intent + ' (' + Math.round((ev.confidence || 0) * 100) + '%)';
+    if (ev.kind === 'mood') return ev.mood;
+    if (ev.kind === 'agents') return ev.agent || '';
+    if (ev.kind === 'error') return (ev.where || '') + ': ' + (ev.error || '');
+    if (ev.kind === 'debug_mode') return ev.value ? 'ativado' : 'desativado';
+    return JSON.stringify(ev);
+  }
+
+  function addDebugEvent(ev) {
+    if (!debugPanel || debugPanel.hidden || !ev) return;
+    const row = document.createElement('div');
+    row.className = 'debug-panel__event debug-panel__event--' + ev.kind;
+
+    const kind = document.createElement('span');
+    kind.className = 'debug-panel__kind';
+    kind.textContent = KIND_LABEL[ev.kind] || ev.kind;
+
+    const detail = document.createElement('span');
+    detail.className = 'debug-panel__detail';
+    detail.textContent = debugDetail(ev);
+
+    const time = document.createElement('span');
+    time.className = 'debug-panel__time';
+    time.textContent = fmtTime(ev.ts);
+
+    row.append(kind, detail, time);
+    debugList.appendChild(row);
+    debugList.scrollTop = debugList.scrollHeight;
+  }
+
+  function setDebug(enabled) {
+    if (!debugBtn) return;
+    debugBtn.setAttribute('aria-pressed', String(enabled));
+    debugBtn.classList.toggle('chat__debug--on', enabled);
+    debugBtn.title = enabled
+      ? 'Modo de depura\u00e7\u00e3o ativo. Clique para desativar.'
+      : 'Ativar modo de depura\u00e7\u00e3o';
+    if (debugPanel) debugPanel.hidden = !enabled;
+  }
+
+  if (debugBtn) {
+    fetch('/api/debug')
+      .then((r) => r.json())
+      .then((data) => {
+        setDebug(data.enabled);
+        if (data.enabled) (data.events || []).forEach(addDebugEvent);
+      })
+      .catch(() => {});
+
+    debugBtn.addEventListener('click', async () => {
+      const enabled = debugBtn.getAttribute('aria-pressed') !== 'true';
+      debugBtn.disabled = true;
+      try {
+        const res = await fetch('/api/debug', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled }),
+        });
+        const data = await res.json();
+        setDebug(data.enabled);
+        if (data.enabled) {
+          debugList.innerHTML = '';
+          (data.events || []).forEach(addDebugEvent);
+        }
+      } catch (err) {
+        /* mant\u00e9m o estado atual */
+      } finally {
+        debugBtn.disabled = false;
+      }
+    });
+
+    if (debugClearBtn) {
+      debugClearBtn.addEventListener('click', () => {
+        debugList.innerHTML = '';
+      });
+    }
   }
 
   input.focus();
