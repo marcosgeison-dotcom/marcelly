@@ -9,10 +9,11 @@ import sqlite3
 import time
 from pathlib import Path
 
+from config import DATA_DIR
 from core.debug import DEBUG
 from core.ollama_client import OllamaClient
 
-DB_PATH = Path(__file__).parent.parent / "data" / "marcelly.db"
+DB_PATH = DATA_DIR / "marcelly.db"
 
 
 class BaseAgent:
