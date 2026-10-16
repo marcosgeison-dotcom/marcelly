@@ -44,6 +44,30 @@ class OllamaClient:
         except ResponseError as e:
             raise RuntimeError(f"Erro no Ollama: {e.error}") from e
 
+    def chat_stream(self, prompt: str, system: str = "", model: Optional[str] = None):
+        """Gera a resposta em pedaços (streaming local) — a primeira palavra
+        aparece em ~1 segundo, em vez de esperar a resposta inteira."""
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+        try:
+            stream = self.client.chat(
+                model=model or CONFIG.ollama.model,
+                messages=messages,
+                options={
+                    "temperature": CONFIG.ollama.temperature,
+                    "num_ctx": 4096,
+                },
+                stream=True,
+            )
+            for part in stream:
+                piece = part.message.content
+                if piece:
+                    yield piece
+        except ResponseError as e:
+            raise RuntimeError(f"Erro no Ollama: {e.error}") from e
+
     def classify_intent(self, user_input: str) -> dict[str, Any]:
         """
         Classifica a intenção do usuário em uma das frentes.
