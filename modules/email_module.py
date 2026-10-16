@@ -13,12 +13,12 @@ from typing import Optional
 
 from imapclient import IMAPClient
 
-from config import CONFIG
+from config import CONFIG, DATA_DIR
 from core.ollama_client import OllamaClient
 
 # Dados de acesso informados pelo usuário no chat são salvos APENAS neste
 # computador (arquivo local em data/) — nunca vão para a nuvem.
-CONFIG_FILE = Path(__file__).parent.parent / "data" / "email_config.json"
+CONFIG_FILE = DATA_DIR / "email_config.json"
 
 # Servidores IMAP conhecidos — deduz o host quando o usuário só diz o provedor
 KNOWN_IMAP_HOSTS = {
