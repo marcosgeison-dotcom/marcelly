@@ -8,6 +8,8 @@ import base64
 import json
 import sys
 import threading
+import os
+import time
 import webbrowser
 from pathlib import Path
 
@@ -111,13 +113,64 @@ async def websocket_endpoint(ws: WebSocket):
 
 
 if __name__ == "__main__":
+    import webview
+
+    from core import tray
+
     if not orchestrator._ensure_ollama():
         sys.exit(1)
     # Atalho na Área de Trabalho + início junto com o Windows (1ª execução)
     create_desktop_shortcut()
     if not get_autostart():
         set_autostart(True)
+
     port = 8765
-    print("U0001f512 Marcelly rodando em http://127.0.0.1:8765")
-    threading.Timer(1.5, lambda: webbrowser.open("http://127.0.0.1:8765")).start()
-    uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
+    url = f"http://127.0.0.1:{port}"
+
+    # Servidor em segundo plano — a janela nativa é a interface principal
+    config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
+    server = uvicorn.Server(config)
+    threading.Thread(target=server.run, daemon=True).start()
+    deadline = time.time() + 30
+    while not server.started and time.time() < deadline:
+        time.sleep(0.2)
+    if not server.started:
+        sys.exit(1)
+
+    holder = {"window": None}
+
+    def _esconde():
+        # Ao minimizar, a janela some da barra e continua só no ícone da bandeja
+        try:
+            holder["window"].hide()
+        except Exception:
+            pass
+
+    def abrir():
+        janela = holder["window"]
+        if janela is not None:
+            try:
+                janela.show()
+                return
+            except Exception:
+                holder["window"] = None
+        webbrowser.open(url)
+
+    def sair():
+        server.should_exit = True
+        tray.stop()
+        os._exit(0)
+
+    tray.start(on_open=abrir, on_quit=sair)
+
+    janela = webview.create_window("Marcelly", url, width=1000, height=720, min_size=(420, 520))
+    holder["window"] = janela
+    try:
+        janela.events.minimized += _esconde
+    except AttributeError:
+        pass
+
+    webview.start()
+    # Janela fechada (X): o servidor continua ativo e o ícone fica na bandeja
+    while not server.should_exit:
+        time.sleep(0.5)

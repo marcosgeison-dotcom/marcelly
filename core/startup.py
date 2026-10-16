@@ -46,7 +46,7 @@ def create_desktop_shortcut() -> bool:
     if getattr(sys, "frozen", False):
         target, args, workdir, icon = sys.executable, "", str(Path(sys.executable).parent), sys.executable
     else:
-        target, args, workdir, icon = _pythonw(), f'"{_app_script()}"', str(Path(__file__).parent.parent), _pythonw()
+        target, args, workdir, icon = _pythonw(), f'"{_app_script()}"', str(Path(__file__).parent.parent), str(Path(__file__).parent.parent / "ui" / "icon.ico")
 
     script = (
         '$s = (New-Object -ComObject WScript.Shell).CreateShortcut("' + str(lnk) + '");'
