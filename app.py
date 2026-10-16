@@ -160,6 +160,9 @@ def _free_stale_instance(port: int = 8765):
         if info and "Marcelly" in (info.stdout or ""):
             _run(["taskkill", "/F", "/PID", pid])
             time.sleep(1)
+    # Fecha o console visível do Ollama deixado por uma versão antiga;
+    # ele volta a rodar oculto logo em seguida.
+    _run(["taskkill", "/F", "/IM", "ollama.exe"])
 
 
 @app.websocket("/ws")
