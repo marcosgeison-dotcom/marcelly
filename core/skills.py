@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 
 from core.debug import DEBUG
 from core.ollama_client import OllamaClient
+from core.resilience import chat_with_retry, local_ideas, local_review, local_summary, simple_plan, try_alternatives, with_email_alternatives
 
 
 class Skill:
@@ -108,10 +109,11 @@ class SkillRegistry:
         return None
 
     # ---------- Handlers ----------
-    def _resumo(self, request, reg):
+        def _resumo(self, request, reg):
         lower = request.lower()
         if "e-mail" in lower or "email" in lower or "inbox" in lower:
-            return reg.orch.email.daily_brief()
+            body, error = with_email_alternatives(reg.orch.email, reg.orch.email.daily_brief)
+            return body if error is None else error
         rows = reg.orch.memory.recent_interactions(20)
         if not rows:
             return "Ainda nao temos conversas para resumir."
@@ -123,9 +125,12 @@ class SkillRegistry:
             "Resuma a conversa abaixo em ate 6 topicos curtos em portugues, "
             "destacando os principais assuntos. Sem introducoes."
         )
-        return self.llm.chat(convo, system=system).strip()
+        return try_alternatives("Resumo Inteligente", [
+            ("resumo pelo modelo local", lambda: self.llm.chat(convo, system=system).strip()),
+            ("resumo local simplificado", lambda: local_summary(rows)),
+        ])
 
-    def _revisao(self, request, reg):
+        def _revisao(self, request, reg):
         rows = reg.orch.memory.recent_interactions(30)
         if not rows:
             return "Ainda nao ha solicitacoes suficientes para eu analisar. Converse comigo um pouco mais!"
@@ -142,7 +147,10 @@ class SkillRegistry:
             "provavelmente nao geraram a resposta esperada.\n"
             "Seja especifico citando os pedidos (use o numero). Sem introducoes."
         )
-        return self.llm.chat(listing, system=system).strip()
+        return try_alternatives("Revisao de Solicitacoes", [
+            ("analise pelo modelo local", lambda: self.llm.chat(listing, system=system).strip()),
+            ("analise local simplificada", lambda: local_review(rows)),
+        ])
 
     def _busca(self, request, reg):
         system = (
@@ -150,7 +158,7 @@ class SkillRegistry:
             "{'query': 'assunto a procurar no historico'}."
         )
         try:
-            raw = self.llm.chat(request, system=system, format_json=True)
+            raw = chat_with_retry(self.llm, request, system=system, format_json=True)
             query = json.loads(raw).get("query", "").strip()
         except Exception:
             query = ""
@@ -208,13 +216,16 @@ class SkillRegistry:
             lines.append("(veja todas no painel Historico)")
         return "\n".join(lines)
 
-    def _plano(self, request, reg):
+        def _plano(self, request, reg):
         system = (
             "Voce e um agente planejador. Divida o pedido do usuario em um plano "
             "curto e pratico: de 3 a 6 passos numerados, cada um com uma acao "
             "concreta. Responda em portugues, sem introducoes."
         )
-        return self.llm.chat(request, system=system).strip()
+        return try_alternatives("Planejamento", [
+            ("plano pelo modelo local", lambda: self.llm.chat(request, system=system).strip()),
+            ("plano local simplificado", lambda: simple_plan(request)),
+        ])
 
     def _lembrete(self, request, reg):
         from core.agents import ReminderAgent
@@ -222,50 +233,82 @@ class SkillRegistry:
             self._reminder = ReminderAgent()
         return self._reminder.run(request)
 
-    def _email(self, request, reg):
+        def _email(self, request, reg):
         lower = request.lower()
         if "resumo" in lower or "brief" in lower:
-            return reg.orch.email.daily_brief()
-        summaries = reg.orch.email.fetch_and_classify(limit=10)
-        lines = ["\U0001f4ec **" + str(len(summaries)) + " e-mails recentes:**", ""]
-        for s in summaries:
-            lines.append("\u2022 **[" + s.category + "]** " + s.sender + ": " + s.subject)
-            lines.append("  " + s.summary)
-        return "\n".join(lines)
+            body, error = with_email_alternatives(reg.orch.email, reg.orch.email.daily_brief)
+            return body if error is None else error
 
-    def _decisao(self, request, reg):
+        def _list_emails():
+            summaries = reg.orch.email.fetch_and_classify(limit=10)
+            lines = ["\U0001f4ec **" + str(len(summaries)) + " e-mails recentes:**", ""]
+            for s in summaries:
+                lines.append("\u2022 **[" + s.category + "]** " + s.sender + ": " + s.subject)
+                lines.append("  " + s.summary)
+            return "\n".join(lines)
+
+        body, error = with_email_alternatives(reg.orch.email, _list_emails)
+        return body if error is None else error
+
+        def _decisao(self, request, reg):
         orch = reg.orch
         options = orch._extract_options(request) or ["Sim", "Nao", "Esperar"]
-        result = orch.decision.decide(request, options)
-        lines = ["\U0001f9e0 **Decisao analisada:** " + request, "", "**Probabilidades:**"]
-        for opt, prob in sorted(result.probabilities.items(), key=lambda x: -x[1]):
-            bar = "\u2588" * int(prob * 20)
-            lines.append("  - " + str(opt) + ": " + format(prob, ".1%") + " " + bar)
-        lines += ["", "\u2705 **Recomendacao:** " + result.recommended,
-                  "\U0001f4dd " + result.explanation]
-        return "\n".join(lines)
 
-    def _ideias(self, request, reg):
+        def _via_calibrado():
+            result = orch.decision.decide(request, options)
+            lines = ["\U0001f9e0 **Decisao analisada:** " + request, "", "**Probabilidades:**"]
+            for opt, prob in sorted(result.probabilities.items(), key=lambda x: -x[1]):
+                bar = "\u2588" * int(prob * 20)
+                lines.append("  - " + str(opt) + ": " + format(prob, ".1%") + " " + bar)
+            lines += ["", "\u2705 **Recomendacao:** " + result.recommended,
+                      "\U0001f4dd " + result.explanation]
+            return "\n".join(lines)
+
+        def _via_chat():
+            opts = ", ".join(str(o) for o in options)
+            system = (
+                "Voce e uma skill de analise de decisoes. Compare as opcoes, "
+                "estime a chance de cada uma valer a pena e recomende um caminho, "
+                "em portugues, de forma curta e objetiva."
+            )
+            texto = chat_with_retry(self.llm, request + "\nOpcoes: " + opts, system=system).strip()
+            return "\U0001f9e0 **Decisao analisada (analise alternativa):** " + request + "\n\n" + texto
+
+        return try_alternatives("Analise de Decisoes", [
+            ("modelo calibrado", _via_calibrado),
+            ("analise pelo modelo de chat", _via_chat),
+        ])
+
+        def _ideias(self, request, reg):
         system = (
             "Gere de 4 a 6 opcoes ou alternativas criativas e praticas para o pedido "
             "abaixo, em portugues, em lista numerada. Sem introducoes."
         )
-        return self.llm.chat(request, system=system).strip()
+        return try_alternatives("Direcionamento e Ideias", [
+            ("ideias pelo modelo local", lambda: self.llm.chat(request, system=system).strip()),
+            ("opcoes locais simplificadas", lambda: local_ideas(request)),
+        ])
 
-    def _memoria(self, request, reg):
-        facts = reg.orch.memory.get_facts()[:10]
-        if not facts:
-            return "Ainda nao aprendi fatos sobre voce. Converse comigo e vou anotando!"
-        lines = ["\U0001f4cc **O que sei sobre voce:**", ""]
-        for f in facts:
-            lines.append("\u2022 " + f.key + ": " + f.value)
-        return "\n".join(lines)
+        def _memoria(self, request, reg):
+        def _read():
+            facts = reg.orch.memory.get_facts()[:10]
+            if not facts:
+                return "Ainda nao aprendi fatos sobre voce. Converse comigo e vou anotando!"
+            lines = ["\U0001f4cc **O que sei sobre voce:**", ""]
+            for f in facts:
+                lines.append("\u2022 " + f.key + ": " + f.value)
+            return "\n".join(lines)
 
-    def _habitos(self, request, reg):
-        patterns = reg.orch.memory.get_patterns(6)
-        if not patterns:
-            return "Ainda nao detectei padroes. Converse comigo por alguns dias!"
-        lines = ["\U0001f4c8 **Padroes que detectei:**", ""]
-        for p in patterns:
-            lines.append("\u2022 " + p)
-        return "\n".join(lines)
+        return try_alternatives("Memoria de Fatos", [("ler a memoria local", _read)])
+
+        def _habitos(self, request, reg):
+        def _read():
+            patterns = reg.orch.memory.get_patterns(6)
+            if not patterns:
+                return "Ainda nao detectei padroes. Converse comigo por alguns dias!"
+            lines = ["\U0001f4c8 **Padroes que detectei:**", ""]
+            for p in patterns:
+                lines.append("\u2022 " + p)
+            return "\n".join(lines)
+
+        return try_alternatives("Padroes e Habitos", [("ler a memoria local", _read)])
