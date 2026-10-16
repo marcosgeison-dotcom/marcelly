@@ -44,6 +44,10 @@ KEYWORDS = {
         r"\b(busque|pesquise|procure no hist[óo]rico)\b",
         r"\b(hist[óo]rico das? (minhas )?conversas?|conversas? por dia)\b",
         r"\b(o que voc[êe] sabe sobre mim|meus fatos|minha mem[óo]ria)\b",
+        r"\b(resum[oa]s?|resumir)\b",
+        r"\b(organiz\w+|separe|agrupe)\b.*\bdia\b",
+        r"\b(h[\u00e1a]bitos|padr[\u00f5e]es)\b",
+        r"\bmelhore\b",
     ],
 }
 
