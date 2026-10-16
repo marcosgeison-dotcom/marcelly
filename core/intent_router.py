@@ -38,7 +38,6 @@ KEYWORDS = {
         r"\b(lembrete|lembretes|me lembre|lembra-?me|me avise)\b",
         r"\b(plano|planeje|planejar|monte uma rotina|passo a passo)\b",
     ],
-}
     "skills": [
         r"\b(skills?|habilidades?|o que voc[êe] sabe fazer)\b",
         r"\b(retrospectiva|revis(ã|a)o dos? meus? pedidos?|melhorias? e falhas?|como posso melhorar)\b",
