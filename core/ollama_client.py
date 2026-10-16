@@ -36,7 +36,8 @@ class OllamaClient:
                 messages=messages,
                 options={
                     "temperature": CONFIG.ollama.temperature,
-                    "num_ctx": 4096,
+                    "num_ctx": 2048,
+                    "num_predict": 400,
                 },
                 format="json" if format_json else "",
                 keep_alive="30m",
@@ -58,7 +59,8 @@ class OllamaClient:
                 messages=messages,
                 options={
                     "temperature": CONFIG.ollama.temperature,
-                    "num_ctx": 4096,
+                    "num_ctx": 2048,
+                    "num_predict": 400,
                 },
                 stream=True,
                 keep_alive="30m",
@@ -96,5 +98,18 @@ class OllamaClient:
         response = self.client.embed(
             model="nomic-embed-text",
             input=text,
+            keep_alive="30m",
         )
         return response["embeddings"][0]
+
+    def warmup(self):
+        """Pré-carrega o modelo na memória: a primeira mensagem responde na hora."""
+        try:
+            self.client.chat(
+                model=CONFIG.ollama.model,
+                messages=[{"role": "user", "content": "ok"}],
+                options={"num_predict": 1, "num_ctx": 512},
+                keep_alive="30m",
+            )
+        except Exception:
+            pass
