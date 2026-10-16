@@ -364,11 +364,26 @@ class MarcellyOrchestrator:
                 "Já posso ler sua caixa de entrada — é só pedir: _\"resuma meus e-mails\"_.\n\n"
                 "_Sua senha fica salva apenas neste computador._"
             )
+        # O servidor informado não aceitou: busca alternativas automaticamente
+        informed = str(data.get("imap_host") or CONFIG.email.imap_host)
+        fixed, _err, host, tried = self.email.try_alternative_hosts()
+        if fixed:
+            return (
+                "⚠️ O servidor **" + informed + "** não aceitou:\n"
+                "\`" + error + "\`\n\n"
+                "🔎 Testei servidores alternativos e **" + str(host) + "** funcionou.\n"
+                "Já atualizei e salvei — é só pedir: _\"resuma meus e-mails\"_."
+            )
+        tried_txt = ", ".join("\`" + h + "\`" for h in tried) or "nenhum"
         return (
-            "⚠️ Salvei seus dados, mas o servidor **" + str(CONFIG.email.imap_host) + "** não aceitou:\n"
+            "⚠️ Salvei seus dados, mas não consegui conectar:\n"
             "\`" + error + "\`\n\n"
-            "Confirme o servidor IMAP exato do seu provedor e me envie de novo — "
-            "por exemplo: \`imap.seuprovedor.com.br\` — que eu atualizo e testo de novo."
+            "Já testei automaticamente estes servidores: " + tried_txt + " — nenhum aceitou.\n\n"
+            "Alternativas que costumam resolver:\n"
+            "- **Locaweb** e hospedagens brasileiras similares usam o servidor compartilhado \`email-ssl.com.br\` (porta 993).\n"
+            "- **HostGator**: \`mail.seudominio.com.br\`.\n"
+            "- Confirme o servidor IMAP exato no painel do seu provedor e me envie de novo — "
+            "por exemplo: \`imap.seuprovedor.com.br\` — que eu atualizo e teste."
         )
 
     def _contains_credentials(self, text: str) -> bool:
