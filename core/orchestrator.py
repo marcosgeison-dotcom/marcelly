@@ -177,11 +177,13 @@ class MarcellyOrchestrator:
             reasoning=routing.reasoning,
         )
 
-        try:
-            self.memory.learn_facts(user_input)
-        except Exception as e:
-            log.warning(f"Falha ao aprender fatos: {e}")
-            DEBUG.log("error", where="memoria.fatos", error=str(e))
+        # Saudações e mensagens casuais não têm fatos: pula a extração (chamada de LLM)
+        if not self._is_casual(user_input):
+            try:
+                self.memory.learn_facts(user_input)
+            except Exception as e:
+                log.warning(f"Falha ao aprender fatos: {e}")
+                DEBUG.log("error", where="memoria.fatos", error=str(e))
 
         if routing.intent == "email":
             _emit(emit, type="status", value="📧 Agente de E-mail abrindo sua caixa de entrada...")
