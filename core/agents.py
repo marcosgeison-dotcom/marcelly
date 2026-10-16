@@ -34,7 +34,7 @@ class EmailAgent(BaseAgent):
     def __init__(self, email_module):
         self.email = email_module
 
-        def run(self, request: str) -> str:
+    def run(self, request: str) -> str:
         if "resumo" in request.lower() or "brief" in request.lower():
             body, error = with_email_alternatives(self.email, self.email.daily_brief)
             return body if error is None else error
@@ -60,7 +60,7 @@ class PlannerAgent(BaseAgent):
     def __init__(self):
         self.llm = OllamaClient()
 
-        def run(self, request: str) -> str:
+    def run(self, request: str) -> str:
         system = (
             "Voc\u00ea \u00e9 um agente planejador. Divida o pedido do usu\u00e1rio em um plano "
             "curto e pr\u00e1tico: de 3 a 6 passos numerados, cada um com uma a\u00e7\u00e3o "
@@ -161,7 +161,7 @@ class PatternsAgent(BaseAgent):
     def __init__(self, memory):
         self.memory = memory
 
-        def run(self, request: str) -> str:
+    def run(self, request: str) -> str:
         def _collect() -> str:
             patterns = self.memory.get_patterns(5)
             facts = self.memory.get_facts()[:5]
