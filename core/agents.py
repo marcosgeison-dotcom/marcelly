@@ -35,7 +35,10 @@ class EmailAgent(BaseAgent):
     def run(self, request: str) -> str:
         if "resumo" in request.lower() or "brief" in request.lower():
             return self.email.daily_brief()
-        summaries = self.email.fetch_and_classify(limit=10)
+        try:
+            summaries = self.email.fetch_and_classify(limit=10)
+        except RuntimeError:
+            return self.email.setup_guide()
         lines = [f"📧 **{len(summaries)} e-mails recentes:**", ""]
         for s in summaries:
             lines.append(f"• **[{s.category}]** {s.sender}: {s.subject}")
