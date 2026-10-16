@@ -278,5 +278,186 @@
     }
   }
 
+  // ---------- Histórico por dia + busca por assunto ----------
+  const historyBtn = document.getElementById('historyBtn');
+  const historyPanel = document.getElementById('historyPanel');
+  const historyCloseBtn = document.getElementById('historyCloseBtn');
+  const historySearchForm = document.getElementById('historySearchForm');
+  const historySearch = document.getElementById('historySearch');
+  const historyList = document.getElementById('historyList');
+
+  function openHistory() {
+    if (!historyPanel) return;
+    historyPanel.hidden = false;
+    if (historyBtn) historyBtn.setAttribute('aria-pressed', 'true');
+    historySearch.focus();
+    loadHistoryDays();
+  }
+
+  function closeHistory() {
+    if (!historyPanel) return;
+    historyPanel.hidden = true;
+    if (historyBtn) historyBtn.setAttribute('aria-pressed', 'false');
+  }
+
+  function loadHistoryDays() {
+    fetch('/api/history')
+      .then((r) => r.json())
+      .then((data) => renderDays(data.days || []))
+      .catch(() => {});
+  }
+
+  function labelDay(day) {
+    const now = new Date();
+    const iso = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+    if (day === iso(now)) return 'Hoje';
+    if (day === iso(yesterday)) return 'Ontem';
+    return day.split('-').reverse().join('/');
+  }
+
+  function renderDays(days) {
+    if (!historyList) return;
+    if (!days.length) {
+      historyList.innerHTML = '<p class="history-empty">Nenhuma conversa registrada ainda.</p>';
+      return;
+    }
+    historyList.innerHTML = '';
+    days.forEach((d) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'history-day';
+      btn.innerHTML = '<span>' + labelDay(d.day) + '</span><span class="history-day__count">' + d.n + '</span>';
+      btn.addEventListener('click', () => loadDay(d.day));
+      historyList.appendChild(btn);
+    });
+  }
+
+  function loadDay(day) {
+    fetch('/api/history?day=' + encodeURIComponent(day))
+      .then((r) => r.json())
+      .then((data) => {
+        if (!historyList) return;
+        historyList.innerHTML = '';
+        const back = document.createElement('button');
+        back.type = 'button';
+        back.className = 'history-back';
+        back.textContent = '\u2190 ' + labelDay(day);
+        back.addEventListener('click', loadHistoryDays);
+        historyList.appendChild(back);
+        const items = data.items || [];
+        items.forEach((it) => {
+          const when = new Date(it.ts * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          const wrap = document.createElement('div');
+          wrap.className = 'history-item';
+          const head = document.createElement('div');
+          head.className = 'history-item__head';
+          head.innerHTML = '<span class="history-item__time">' + when + '</span><span class="history-item__intent">' + (it.intent || 'chat') + '</span>';
+          const q = document.createElement('p');
+          q.className = 'history-item__q';
+          q.textContent = it.user_message;
+          const a = document.createElement('details');
+          a.className = 'history-item__a';
+          const sum = document.createElement('summary');
+          sum.textContent = 'ver resposta';
+          const body = document.createElement('p');
+          body.textContent = it.response || '';
+          a.append(sum, body);
+          wrap.append(head, q, a);
+          historyList.appendChild(wrap);
+        });
+        if (!items.length) {
+          historyList.innerHTML = '<p class="history-empty">Nenhuma conversa neste dia.</p>';
+        }
+      })
+      .catch(() => {});
+  }
+
+  function renderSearchResults(items, q) {
+    if (!historyList) return;
+    if (!items.length) {
+      historyList.innerHTML = '<p class="history-empty">Nada encontrado sobre "' + q + '".</p>';
+      return;
+    }
+    historyList.innerHTML = '';
+    const title = document.createElement('p');
+    title.className = 'history-title';
+    title.textContent = items.length + ' resultado(s) para "' + q + '"';
+    historyList.appendChild(title);
+    items.forEach((it) => {
+      const when = new Date(it.ts * 1000).toLocaleString('pt-BR');
+      const wrap = document.createElement('div');
+      wrap.className = 'history-item';
+      const head = document.createElement('div');
+      head.className = 'history-item__head';
+      head.innerHTML = '<span class="history-item__time">' + when + '</span>';
+      const qt = document.createElement('p');
+      qt.className = 'history-item__q';
+      qt.textContent = it.user_message;
+      wrap.append(head, qt);
+      historyList.appendChild(wrap);
+    });
+  }
+
+  if (historyBtn && historyPanel) {
+    historyBtn.addEventListener('click', () => {
+      if (historyPanel.hidden) openHistory();
+      else closeHistory();
+    });
+    if (historyCloseBtn) historyCloseBtn.addEventListener('click', closeHistory);
+
+    historySearchForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const q = historySearch.value.trim();
+      if (!q) { loadHistoryDays(); return; }
+      fetch('/api/search?q=' + encodeURIComponent(q))
+        .then((r) => r.json())
+        .then((data) => renderSearchResults(data.items || [], q))
+        .catch(() => {
+          historyList.innerHTML = '<p class="history-empty">Não consegui buscar agora.</p>';
+        });
+    });
+  }
+
+  // ---------- Liberação de espaço (ciclo de 120 dias) ----------
+  const storageBanner = document.getElementById('storageBanner');
+  const storageCount = document.getElementById('storageCount');
+  const storageSaveBtn = document.getElementById('storageSaveBtn');
+  const storageLaterBtn = document.getElementById('storageLaterBtn');
+
+  if (storageBanner) {
+    fetch('/api/storage')
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.due) return;
+        if (storageCount) storageCount.textContent = String(data.old_records);
+        storageBanner.hidden = false;
+      })
+      .catch(() => {});
+
+    if (storageLaterBtn) {
+      storageLaterBtn.addEventListener('click', () => {
+        fetch('/api/storage/postpone', { method: 'POST' }).catch(() => {});
+        storageBanner.hidden = true;
+      });
+    }
+    if (storageSaveBtn) {
+      storageSaveBtn.addEventListener('click', () => {
+        storageSaveBtn.disabled = true;
+        fetch('/api/storage/archive', { method: 'POST' })
+          .then((r) => r.json())
+          .then((data) => {
+            storageBanner.hidden = true;
+            const msg = data.archived
+              ? '💾 Pronto! Salvei ' + data.archived + ' conversa(s) antigas em "' + (data.file || 'arquivo local') + '" e liberei espaço no banco.'
+              : '💾 Nada a arquivar — seu histórico já está enxuto.';
+            addMessage('bot', msg);
+          })
+          .catch(() => { storageSaveBtn.disabled = false; });
+      });
+    }
+  }
+
   input.focus();
 })();
