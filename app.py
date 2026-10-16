@@ -108,6 +108,19 @@ async def storage_postpone():
     return {"due": False}
 
 
+def _emit_bridge(ws: WebSocket):
+    """Permite ao orquestrador (thread separada) enviar status e tokens em tempo real."""
+    loop = asyncio.get_running_loop()
+
+    def emit(payload: dict):
+        try:
+            asyncio.run_coroutine_threadsafe(ws.send_json(payload), loop)
+        except Exception:
+            pass
+
+    return emit
+
+
 async def _log_and_send_debug(ws: WebSocket, started: float, response: dict):
     event = DEBUG.log(
         "response",
@@ -161,7 +174,7 @@ async def websocket_endpoint(ws: WebSocket):
                 DEBUG.log("request", source="voz", message=text)
                 started = time.time()
                 try:
-                    response = await asyncio.to_thread(orchestrator.handle, text)
+                    response = await asyncio.to_thread(orchestrator.handle, text, _emit_bridge(ws))
                 except Exception as e:
                     response = {"text": f"⚠️ Algo deu errado: {e}", "meta": {"intent": "error"}}
                     DEBUG.log("error", where="voz", error=str(e))
@@ -181,7 +194,7 @@ async def websocket_endpoint(ws: WebSocket):
             DEBUG.log("request", source="texto", message=user_message)
             started = time.time()
             try:
-                response = await asyncio.to_thread(orchestrator.handle, user_message)
+                response = await asyncio.to_thread(orchestrator.handle, user_message, _emit_bridge(ws))
             except Exception as e:
                 response = {"text": f"⚠️ Algo deu errado: {e}", "meta": {"intent": "error"}}
                 DEBUG.log("error", where="texto", error=str(e))
@@ -219,13 +232,6 @@ if __name__ == "__main__":
 
     holder = {"window": None}
 
-    def _esconde():
-        # Ao minimizar, a janela some da barra e continua só no ícone da bandeja
-        try:
-            holder["window"].hide()
-        except Exception:
-            pass
-
     def abrir():
         janela = holder["window"]
         if janela is not None:
@@ -245,10 +251,6 @@ if __name__ == "__main__":
 
     janela = webview.create_window("Marcelly", url, width=1000, height=720, min_size=(420, 520))
     holder["window"] = janela
-    try:
-        janela.events.minimized += _esconde
-    except AttributeError:
-        pass
 
     webview.start()
     # Janela fechada (X): o servidor continua ativo e o ícone fica na bandeja
