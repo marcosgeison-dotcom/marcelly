@@ -598,3 +598,49 @@ html, body {
   color: var(--accent-2);
   animation: agent-pulse 1s ease-in-out infinite;
 }
+
+/* ---------- Anexo de arquivos ---------- */
+.chat__input .attach {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--accent);
+}
+.chat__input .attach:hover {
+  border-color: var(--accent);
+  box-shadow: 0 6px 20px rgba(0, 229, 255, 0.25);
+}
+.chat__input .attach.has-file {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.2);
+}
+.attach-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 22px 0;
+  padding: 8px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  overflow: hidden;
+}
+.attach-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attach-chip button {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 2px 4px;
+}
+.attach-chip button:hover {
+  color: var(--accent);
+}
