@@ -109,7 +109,7 @@ class SkillRegistry:
         return None
 
     # ---------- Handlers ----------
-        def _resumo(self, request, reg):
+    def _resumo(self, request, reg):
         lower = request.lower()
         if "e-mail" in lower or "email" in lower or "inbox" in lower:
             body, error = with_email_alternatives(reg.orch.email, reg.orch.email.daily_brief)
@@ -130,7 +130,7 @@ class SkillRegistry:
             ("resumo local simplificado", lambda: local_summary(rows)),
         ])
 
-        def _revisao(self, request, reg):
+    def _revisao(self, request, reg):
         rows = reg.orch.memory.recent_interactions(30)
         if not rows:
             return "Ainda nao ha solicitacoes suficientes para eu analisar. Converse comigo um pouco mais!"
@@ -216,7 +216,7 @@ class SkillRegistry:
             lines.append("(veja todas no painel Historico)")
         return "\n".join(lines)
 
-        def _plano(self, request, reg):
+    def _plano(self, request, reg):
         system = (
             "Voce e um agente planejador. Divida o pedido do usuario em um plano "
             "curto e pratico: de 3 a 6 passos numerados, cada um com uma acao "
@@ -233,7 +233,7 @@ class SkillRegistry:
             self._reminder = ReminderAgent()
         return self._reminder.run(request)
 
-        def _email(self, request, reg):
+    def _email(self, request, reg):
         lower = request.lower()
         if "resumo" in lower or "brief" in lower:
             body, error = with_email_alternatives(reg.orch.email, reg.orch.email.daily_brief)
@@ -250,7 +250,7 @@ class SkillRegistry:
         body, error = with_email_alternatives(reg.orch.email, _list_emails)
         return body if error is None else error
 
-        def _decisao(self, request, reg):
+    def _decisao(self, request, reg):
         orch = reg.orch
         options = orch._extract_options(request) or ["Sim", "Nao", "Esperar"]
 
@@ -279,7 +279,7 @@ class SkillRegistry:
             ("analise pelo modelo de chat", _via_chat),
         ])
 
-        def _ideias(self, request, reg):
+    def _ideias(self, request, reg):
         system = (
             "Gere de 4 a 6 opcoes ou alternativas criativas e praticas para o pedido "
             "abaixo, em portugues, em lista numerada. Sem introducoes."
@@ -289,7 +289,7 @@ class SkillRegistry:
             ("opcoes locais simplificadas", lambda: local_ideas(request)),
         ])
 
-        def _memoria(self, request, reg):
+    def _memoria(self, request, reg):
         def _read():
             facts = reg.orch.memory.get_facts()[:10]
             if not facts:
@@ -301,7 +301,7 @@ class SkillRegistry:
 
         return try_alternatives("Memoria de Fatos", [("ler a memoria local", _read)])
 
-        def _habitos(self, request, reg):
+    def _habitos(self, request, reg):
         def _read():
             patterns = reg.orch.memory.get_patterns(6)
             if not patterns:
