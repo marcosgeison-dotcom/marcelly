@@ -3,8 +3,23 @@ Configuração local do Marcelly.
 Nenhum dado é enviado para servidores externos por padrão.
 """
 import os
+import sys
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
+
+
+def _persistent_data_dir() -> Path:
+    """Pasta de dados persistente. No executavel (PyInstaller onefile),
+    Path(__file__) vive numa pasta temporaria apagada ao fechar o app —
+    por isso memoria, lembretes, e-mail e debug ficam em LOCALAPPDATA."""
+    if getattr(sys, "frozen", False):
+        base = os.getenv("LOCALAPPDATA") or os.path.expanduser("~")
+        return Path(base) / "Marcelly" / "data"
+    return Path(__file__).parent / "data"
+
+
+DATA_DIR = _persistent_data_dir()
 
 
 @dataclass
