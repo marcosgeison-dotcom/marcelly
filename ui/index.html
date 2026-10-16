@@ -80,10 +80,16 @@
           <p class="msg__hint">Escreva ou clique no <em>microfone</em> e fale:
           <em>"resuma meus e-mails"</em>, <em>"devo aceitar a proposta?"</em>,
           <em>"monte um plano para hoje"</em> ou <em>"me lembre de ligar para o João às 15h"</em>.
+          Anexe um arquivo com o 📎 para pedir análise, resumo ou decisão sobre o conteúdo.
           Diga <em>"quais skills você tem?"</em> para ver as 15 skills instaladas — inclusive a Revisão de Solicitações, que analisa seus pedidos e aponta melhorias e falhas.</p>
         </div>
       </div>
     </main>
+
+    <div class="attach-chip" id="attachChip" hidden>
+      <span id="attachName"></span>
+      <button type="button" id="attachRemoveBtn" aria-label="Remover anexo" title="Remover anexo">&#10005;</button>
+    </div>
 
     <form class="chat__input" id="chatForm" autocomplete="off">
       <input
@@ -93,6 +99,11 @@
         aria-label="Mensagem"
         required
       />
+      <button type="button" id="attachBtn" class="attach" aria-label="Anexar arquivo" title="Anexar arquivo (texto, código, CSV, PDF ou DOCX · até 2 MB)">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+        </svg>
+      </button>
       <button type="button" id="micBtn" class="mic" aria-label="Falar com o Marcelly" title="Clique e fale">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="9" y="2" width="6" height="12" rx="3"/>
