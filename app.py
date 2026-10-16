@@ -132,6 +132,36 @@ async def _log_and_send_debug(ws: WebSocket, started: float, response: dict):
         await ws.send_json({"type": "debug", "event": event})
 
 
+def _free_stale_instance(port: int = 8765):
+    """Encerra uma instância antiga do Marcelly que ainda ocupa a porta local.
+    Sem isso, o processo antigo (na bandeja) continua respondendo e a
+    versão nova nunca entra no ar — o executável novo apenas sai em silêncio."""
+    import subprocess
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+    def _run(cmd):
+        try:
+            return subprocess.run(cmd, capture_output=True, text=True,
+                                  timeout=15, creationflags=flags)
+        except Exception:
+            return None
+
+    out = _run(["netstat", "-ano"])
+    if not out or not out.stdout:
+        return
+    pids = set()
+    for line in out.stdout.splitlines():
+        parts = line.split()
+        if (len(parts) >= 5 and parts[0] == "TCP"
+                and f":{port}" in parts[1] and parts[3] == "LISTENING"):
+            pids.add(parts[4])
+    for pid in pids:
+        info = _run(["tasklist", "/FI", f"PID eq {pid}"])
+        if info and "Marcelly" in (info.stdout or ""):
+            _run(["taskkill", "/F", "/PID", pid])
+            time.sleep(1)
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
@@ -209,6 +239,8 @@ if __name__ == "__main__":
     import webview
 
     from core import tray
+
+    _free_stale_instance()
 
     if not orchestrator._ensure_ollama():
         sys.exit(1)
