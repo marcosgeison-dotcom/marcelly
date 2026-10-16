@@ -10,10 +10,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+from config import DATA_DIR
 from core.ollama_client import OllamaClient
 
-DB_PATH = Path(__file__).parent.parent / "data" / "marcelly.db"
-PROFILE_PATH = Path(__file__).parent.parent / "data" / "profile.json"
+DB_PATH = DATA_DIR / "marcelly.db"
+PROFILE_PATH = DATA_DIR / "profile.json"
 
 
 @dataclass
