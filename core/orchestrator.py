@@ -18,6 +18,7 @@ from core.memory import Memory
 from core.mood_detector import MoodDetector
 from core.ollama_client import OllamaClient
 from core.personality import Personality
+from core.performance import PERF
 from core.resilience import with_email_alternatives
 from core.skills import SkillRegistry
 from modules.chat_module import ChatModule
@@ -169,6 +170,7 @@ class MarcellyOrchestrator:
         Processa uma entrada e devolve:
         { "text": str, "meta": { "intent", "mood", ... } }
         """
+        PERF.start("roteamento")
         mood_ctx = self.mood.detect(user_input)
         DEBUG.log("mood", mood=mood_ctx.mood, time_of_day=mood_ctx.time_of_day)
         _emit(emit, type="status", value="🔎 Analisando o pedido...")
@@ -181,7 +183,12 @@ class MarcellyOrchestrator:
         )
 
         # Saudações e mensagens casuais não têm fatos: pula a extração (chamada de LLM)
-        if not self._is_casual(user_input) and not self._contains_credentials(user_input):
+        # No modo rapido, pula a extracao de fatos: e uma chamada extra de LLM
+        if (
+            not PERF.is_accelerated()
+            and not self._is_casual(user_input)
+            and not self._contains_credentials(user_input)
+        ):
             try:
                 self.memory.learn_facts(user_input)
             except Exception as e:
@@ -196,6 +203,7 @@ class MarcellyOrchestrator:
                 user_name=self.memory.profile.get("name", ""),
                 user_text=user_input,
             )
+            PERF.finish()
             self._remember_async(user_input, routing.intent, mood_ctx.mood, text)
             return {
                 "text": text,
@@ -232,6 +240,7 @@ class MarcellyOrchestrator:
 
         # Registra a interação em segundo plano — não segura a resposta
         # (o modelo de embeddings carregaria na hora e atrasaria o fim)
+        PERF.finish()
         self._remember_async(user_input, routing.intent, mood_ctx.mood, text)
 
         return {
@@ -272,7 +281,8 @@ class MarcellyOrchestrator:
         system = self.personality.build_system_prompt(
             mood_ctx, user_name=self.memory.profile.get("name", "")
         )
-        context = self.memory.build_context()
+        # No modo rapido, corta o contexto de memoria: o prompt processa mais rapido
+        context = "" if PERF.is_accelerated() else self.memory.build_context()
         if context:
             system += "\n\n" + context
 
@@ -306,7 +316,7 @@ class MarcellyOrchestrator:
             return setup
 
         def _listar_emails() -> str:
-            summaries = self.email.fetch_and_classify(limit=10)
+            summaries = self.email.fetch_and_classify(limit=5 if PERF.is_accelerated() else 10)
             lines = [f"\U0001f4e7 **{len(summaries)} e-mails recentes:**", ""]
             for s in summaries:
                 lines.append(f"\u2022 **[{s.category}]** {s.sender}: {s.subject}")
