@@ -4,6 +4,7 @@ Recebe entrada, detecta humor, roteia, gera resposta e aprende.
 """
 import logging
 import re
+import threading
 from typing import Any
 
 from rich.console import Console
@@ -186,6 +187,26 @@ class MarcellyOrchestrator:
                 log.warning(f"Falha ao aprender fatos: {e}")
                 DEBUG.log("error", where="memoria.fatos", error=str(e))
 
+        # Saudações e agradecimentos simples: resposta instantânea, sem modelo.
+        # Um "bom dia" não precisa de IA: responde na hora, em qualquer máquina.
+        if routing.intent == "chat" and self._is_casual(user_input):
+            text = self.personality.instant_reply(
+                mood_ctx,
+                user_name=self.memory.profile.get("name", ""),
+                user_text=user_input,
+            )
+            self._remember_async(user_input, routing.intent, mood_ctx.mood, text)
+            return {
+                "text": text,
+                "meta": {
+                    "intent": "chat",
+                    "confidence": routing.confidence,
+                    "mood": mood_ctx.mood,
+                    "time_of_day": mood_ctx.time_of_day,
+                    "day_of_week": mood_ctx.day_of_week,
+                },
+            }
+
         if routing.intent == "email":
             _emit(emit, type="status", value="📧 Agente de E-mail abrindo sua caixa de entrada...")
             text = self._handle_email(user_input, mood_ctx)
@@ -208,17 +229,9 @@ class MarcellyOrchestrator:
         else:
             text = self._handle_chat(user_input, mood_ctx, emit)
 
-        try:
-            self.memory.log_interaction(
-                user_message=user_input,
-                intent=routing.intent,
-                mood=mood_ctx.mood,
-                response=text,
-            )
-            self.memory.detect_patterns()
-        except Exception as e:
-            log.warning(f"Falha ao registrar interação: {e}")
-            DEBUG.log("error", where="memoria.interacao", error=str(e))
+        # Registra a interação em segundo plano — não segura a resposta
+        # (o modelo de embeddings carregaria na hora e atrasaria o fim)
+        self._remember_async(user_input, routing.intent, mood_ctx.mood, text)
 
         return {
             "text": text,
@@ -230,6 +243,21 @@ class MarcellyOrchestrator:
                 "day_of_week": mood_ctx.day_of_week,
             },
         }
+
+    def _remember_async(self, user_message: str, intent: str, mood: str, response: str):
+        """Salva a interação fora do caminho da resposta (embeddings em outra thread)."""
+        def _save():
+            try:
+                self.memory.log_interaction(
+                    user_message=user_message, intent=intent, mood=mood, response=response,
+                )
+                self.memory.detect_patterns()
+            except Exception as e:
+                log.warning(f"Falha ao registrar interação: {e}")
+                DEBUG.log("error", where="memoria.interacao", error=str(e))
+
+        threading.Thread(target=_save, daemon=True).start()
+
 
     def _is_casual(self, text: str) -> bool:
         casuals = [
