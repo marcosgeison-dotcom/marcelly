@@ -107,7 +107,7 @@ class OllamaClient:
         response = self.client.embed(
             model="nomic-embed-text",
             input=text,
-            keep_alive=-1  # modelo permanece carregado: sem recarga a cada volta,
+            keep_alive=600,  # liberado apos 10 min sem uso: ~0,3 GB nao ficam presos na memoria
         )
         return response["embeddings"][0]
 
