@@ -33,6 +33,9 @@ class SkillRegistry:
 
     KEYWORDS = [
         (r"\bskills?\b|\bhabilidades?\b|\bo que voc[êe] sabe fazer\b", "lista"),
+        (r"\b(resum[oa]s?|resumir)\b", "resumo"),
+        (r"\b(organiz\w+|separe|agrupe)\b.*\bdia\b", "dias"),
+        (r"\bmelhore\b", "revisao"),
         (r"\b(retrospectiva|revis(ã|a)o dos? meus? pedidos?|melhorias? e falhas?|como posso melhorar)\b", "revisao"),
         (r"\b(busque|pesquise|procure no hist[óo]rico|busca no hist[óo]rico)\b", "busca"),
         (r"\b(hist[óo]rico das? (minhas )?conversas?|conversas? por dia)\b", "dias"),
