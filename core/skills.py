@@ -1,5 +1,5 @@
 """
-11 skills locais da Marcelly.
+15 skills locais da Marcelly.
 Cada skill e uma habilidade instalada junto com o executavel -
 tudo roda no seu computador, sem enviar nada para fora.
 
@@ -30,7 +30,7 @@ class Skill:
 
 
 class SkillRegistry:
-    """Catalogo das 11 skills instaladas junto com o executavel."""
+    """Catalogo das 15 skills instaladas junto com o executavel."""
 
     KEYWORDS = [
         (r"\bskills?\b|\bhabilidades?\b|\bo que voc[êe] sabe fazer\b", "lista"),
@@ -47,6 +47,10 @@ class SkillRegistry:
         (r"\b(op[çc][õo]es|ideias|alternativas|sugest[õo]es)\b", "ideias"),
         (r"\b(o que voc[êe] sabe sobre mim|meus fatos|minha mem[óo]ria)\b", "memoria"),
         (r"\b(h[áa]bitos|padr[õo]es)\b", "habitos"),
+        (r"\bsuperpowers?\b|\bmetodologia\b", "superpowers"),
+        (r"\bkarpathy\b", "karpathy"),
+        (r"\b(adhd|tdah)\b", "adhd"),
+        (r"\b(octopus|polvo)\b", "octopus"),
     ]
 
     def __init__(self, orchestrator):
@@ -76,11 +80,19 @@ class SkillRegistry:
                   "Aprende e lembra fatos sobre voce.", self._memoria),
             Skill("habitos", "Padroes e Habitos", "\U0001f4c8",
                   "Detecta seus habitos recorrentes.", self._habitos),
+            Skill("superpowers", "Superpowers", "\U0001f9e9",
+                  "Metodologia de desenvolvimento em passos verificaveis.", self._superpowers),
+            Skill("karpathy", "Karpathy", "\U0001f977",
+                  "Guias de codigo simples, sem exageros de engenharia.", self._karpathy),
+            Skill("adhd", "I have ADHD", "\U0001f4af",
+                  "Respostas acionaveis: direto ao ponto, passo a passo.", self._adhd),
+            Skill("octopus", "Claude Octopus", "\U0001f419",
+                  "Analisa o pedido por tres perspectivas e resume a melhor.", self._octopus),
         ]
 
     # ---------- Catalogo ----------
     def list_skills(self) -> str:
-        lines = ["\u2728 **As 11 skills instaladas na Marcelly:**", ""]
+        lines = ["\u2728 **As " + str(len(self.skills)) + " skills instaladas na Marcelly:**", ""]
         for i, s in enumerate(self.skills, 1):
             lines.append(str(i) + ". " + s.emoji + " **" + s.name + "** \u2014 " + s.description)
         lines += [
@@ -312,3 +324,77 @@ class SkillRegistry:
             return "\n".join(lines)
 
         return try_alternatives("Padroes e Habitos", [("ler a memoria local", _read)])
+
+    # ---------- Skills instaladas (pacotes externos) ----------
+    def _superpowers(self, request, reg):
+        system = (
+            "Voce e a skill Superpowers, uma metodologia de desenvolvimento em "
+            "etapas verificaveis. Para o pedido do usuario, responda em portugues "
+            "neste formato:\n"
+            "\U0001f9e9 **Entendimento:** reformule o objetivo em uma frase.\n"
+            "\U0001f4cb **Plano:** de 3 a 6 passos numerados e concretos, cada um com "
+            "o criterio que prova que o passo funcionou.\n"
+            "\U0001f41b **Riscos:** ate 3 pontos que podem dar errado e como detectar.\n"
+            "\u2705 **Primeiro passo:** o que fazer agora e como verificar.\n"
+            "Sem introducoes."
+        )
+        return try_alternatives("Superpowers", [
+            ("plano metodologico pelo modelo local", lambda: self.llm.chat(request, system=system).strip()),
+            ("plano local simplificado", lambda: simple_plan(request)),
+        ])
+
+    def _karpathy(self, request, reg):
+        system = (
+            "Voce e a skill Karpathy: guias de codigo derivados das observacoes de "
+            "Andrej Karpathy sobre erros comuns de modelos de linguagem. Ao responder "
+            "ao pedido do usuario, em portugues, siga:\n"
+            "1. A solucao mais simples que funciona vence - cada linha de codigo custa.\n"
+            "2. Nao invente abstracoes, camadas ou flexibilidade para o futuro.\n"
+            "3. Prefira apagar codigo a adicionar; reuso antes de algo novo.\n"
+            "4. Teste o comportamento real, nao detalhes internos.\n"
+            "5. Ao apontar um problema, cite onde ele esta (arquivo, linha ou trecho).\n"
+            "Se o pedido nao for sobre codigo, responda curto e direto. Sem introducoes."
+        )
+        def _fallback():
+            return (
+                "\U0001f977 **Checklist Karpathy (sem modelo disponivel):**\n"
+                "1. Qual e a solucao mais simples que funciona?\n"
+                "2. Da para apagar codigo em vez de adicionar?\n"
+                "3. Nenhuma abstracao nova antes da segunda repeticao real.\n"
+                "4. Teste o comportamento que o usuario ve, nao detalhes internos."
+            )
+        return try_alternatives("Karpathy", [
+            ("resposta guiada pelo modelo local", lambda: self.llm.chat(request, system=system).strip()),
+            ("checklist local simplificado", _fallback),
+        ])
+
+    def _adhd(self, request, reg):
+        system = (
+            "O leitor tem TDAH. Modele toda a resposta para ser acionavel, em portugues:\n"
+            "1. Comece com a resposta ou proxima acao - nunca com preambulo.\n"
+            "2. Numere o trabalho de varios passos; uma acao delimitada por passo.\n"
+            "3. Termine com UMA proxima acao de menos de dois minutos.\n"
+            "4. Listas com no maximo 5 itens.\n"
+            "5. Estime tempos em unidades concretas, nunca 'um pouco'.\n"
+            "Sem recapitulacoes nem despedidas."
+        )
+        return try_alternatives("I have ADHD", [
+            ("resposta acionavel pelo modelo local", lambda: self.llm.chat(request, system=system).strip()),
+            ("resposta local simplificada", lambda: simple_plan(request)),
+        ])
+
+    def _octopus(self, request, reg):
+        system = (
+            "Voce e a skill Claude Octopus: analise o pedido por tres perspectivas "
+            "antes de responder, em portugues:\n"
+            "\U0001f41b **Braco 1 - Construtor:** proponha a solucao mais direta.\n"
+            "\U0001f9d0 **Braco 2 - Auditor:** aponte riscos e falhas dessa proposta.\n"
+            "\u2699\ufe0f **Braco 3 - Executor:** transforme em passos curtos e acionaveis.\n"
+            "\U0001f4dd **Veredito:** a melhor resposta final, unindo os tres bracos.\n"
+            "Cada braco em ate 3 linhas. Sem introducoes."
+        )
+        return try_alternatives("Claude Octopus", [
+            ("tres perspectivas pelo modelo local", lambda: self.llm.chat(request, system=system).strip()),
+            ("ideias locais simplificadas", lambda: local_ideas(request)),
+        ])
+
