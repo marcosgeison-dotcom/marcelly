@@ -23,6 +23,13 @@
         </div>
       </div>
       <div class="chat__actions">
+        <button type="button" class="chat__history" id="historyBtn" aria-pressed="false" title="Abrir histórico e busca por assunto">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.3-4.3"/>
+          </svg>
+          <span class="chat__history-text">Histórico</span>
+        </button>
         <button type="button" class="chat__debug" id="debugBtn" aria-pressed="false" title="Ativar modo de depuração">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="m8 2 1.88 1.88"/>
@@ -51,6 +58,19 @@
       </div>
     </header>
 
+    <div class="storage-banner" id="storageBanner" hidden role="alert">
+      <span class="storage-banner__icon">💾</span>
+      <p class="storage-banner__text">
+        <strong>Liberação de espaço disponível.</strong>
+        Há <span id="storageCount">0</span> conversas mais antigas que 120 dias.
+        Quer salvar uma cópia em arquivo e liberar espaço?
+      </p>
+      <div class="storage-banner__actions">
+        <button type="button" class="storage-banner__save" id="storageSaveBtn">Salvar e liberar</button>
+        <button type="button" class="storage-banner__later" id="storageLaterBtn">Agora não</button>
+      </div>
+    </div>
+
     <main class="chat__body" id="chatBody" aria-live="polite">
       <div class="msg msg--bot">
         <div class="msg__avatar">M</div>
@@ -60,7 +80,7 @@
           <p class="msg__hint">Escreva ou clique no <em>microfone</em> e fale:
           <em>"resuma meus e-mails"</em>, <em>"devo aceitar a proposta?"</em>,
           <em>"monte um plano para hoje"</em> ou <em>"me lembre de ligar para o João às 15h"</em>.
-          Diga <em>"quais agentes você tem?"</em> para ver a lista de agentes instalados.</p>
+          Diga <em>"quais skills você tem?"</em> para ver as 11 skills instaladas — inclusive a Revisão de Solicitações, que analisa seus pedidos e aponta melhorias e falhas.</p>
         </div>
       </div>
     </main>
@@ -86,6 +106,29 @@
         </svg>
       </button>
     </form>
+
+    <aside class="history-panel" id="historyPanel" hidden>
+      <div class="history-panel__head">
+        <strong>Histórico</strong>
+        <span class="history-panel__note">salvo localmente — nada sai da máquina</span>
+        <button type="button" id="historyCloseBtn" class="history-panel__close" title="Fechar">✕</button>
+      </div>
+      <form class="history-panel__search" id="historySearchForm">
+        <input
+          type="search"
+          id="historySearch"
+          placeholder="Buscar por assunto…"
+          aria-label="Buscar por assunto no histórico"
+        />
+        <button type="submit" aria-label="Buscar">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.3-4.3"/>
+          </svg>
+        </button>
+      </form>
+      <div class="history-panel__list" id="historyList" aria-live="polite"></div>
+    </aside>
 
     <aside class="debug-panel" id="debugPanel" hidden>
       <div class="debug-panel__head">
