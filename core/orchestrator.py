@@ -18,6 +18,7 @@ from core.memory import Memory
 from core.mood_detector import MoodDetector
 from core.ollama_client import OllamaClient
 from core.personality import Personality
+from core.resilience import with_email_alternatives
 from core.skills import SkillRegistry
 from modules.chat_module import ChatModule
 from modules.decision_module import DecisionModule
@@ -299,26 +300,27 @@ class MarcellyOrchestrator:
         body = self.skills.dispatch(user_input)
         return self._wrap_with_personality(body, mood_ctx, topic="skills")
 
-    def _handle_email(self, user_input: str, mood_ctx) -> str:
+        def _handle_email(self, user_input: str, mood_ctx) -> str:
         setup = self._handle_email_setup(user_input)
         if setup is not None:
             return setup
 
-        try:
-            if "resumo" in user_input.lower() or "brief" in user_input.lower():
-                body = self.email.daily_brief()
-            else:
-                summaries = self.email.fetch_and_classify(limit=10)
-                lines = [f"📧 **{len(summaries)} e-mails recentes:**", ""]
-                for s in summaries:
-                    lines.append(f"• **[{s.category}]** {s.sender}: {s.subject}")
-                    lines.append(f"  {s.summary}")
-                    if s.draft_reply:
-                        lines.append(f"  💬 _Rascunho:_ {s.draft_reply[:140]}...")
-                body = "\n".join(lines)
-        except RuntimeError:
-            # Conta sem configuração: orienta o usuário em vez de dar erro genérico
-            return self.email.setup_guide()
+        def _listar_emails() -> str:
+            summaries = self.email.fetch_and_classify(limit=10)
+            lines = [f"\U0001f4e7 **{len(summaries)} e-mails recentes:**", ""]
+            for s in summaries:
+                lines.append(f"\u2022 **[{s.category}]** {s.sender}: {s.subject}")
+                lines.append(f"  {s.summary}")
+                if s.draft_reply:
+                    lines.append(f"  \U0001f4ac _Rascunho:_ {s.draft_reply[:140]}...")
+            return "\n".join(lines)
+
+        if "resumo" in user_input.lower() or "brief" in user_input.lower():
+            body, error = with_email_alternatives(self.email, self.email.daily_brief)
+        else:
+            body, error = with_email_alternatives(self.email, _listar_emails)
+        if error:
+            return error
         return self._wrap_with_personality(body, mood_ctx, topic="email")
 
     def _handle_email_setup(self, user_input):
