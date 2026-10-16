@@ -1,5 +1,5 @@
 """
-Roteador de intenções — inclui conversa casual (chat).
+Roteador de intenções — inclui conversa casual (chat) e agentes.
 Combina regras determinísticas (rápidas) com classificação via LLM (precisa).
 """
 import re
@@ -10,7 +10,7 @@ from core.ollama_client import OllamaClient
 
 @dataclass
 class RoutingResult:
-    intent: str          # "chat" | "email" | "decision" | "guidance" | "automation"
+    intent: str          # "chat" | "email" | "decision" | "guidance" | "agents" | "automation"
     confidence: float
     reasoning: str
     module: str          # nome do módulo a acionar
@@ -32,6 +32,11 @@ KEYWORDS = {
     "guidance": [
         r"\b(opções|alternativas|caminhos|direcionamento|sugestões|ideias)\b",
         r"\b(como fazer|o que fazer|me ajude a pensar)\b",
+    ],
+    "agents": [
+        r"\b(agente|agentes|quais agentes)\b",
+        r"\b(lembrete|lembretes|me lembre|lembra-?me|me avise)\b",
+        r"\b(plano|planeje|planejar|monte uma rotina|passo a passo)\b",
     ],
 }
 
