@@ -180,7 +180,7 @@ class MarcellyOrchestrator:
         )
 
         # Saudações e mensagens casuais não têm fatos: pula a extração (chamada de LLM)
-        if not self._is_casual(user_input):
+        if not self._is_casual(user_input) and not self._contains_credentials(user_input):
             try:
                 self.memory.learn_facts(user_input)
             except Exception as e:
@@ -300,18 +300,83 @@ class MarcellyOrchestrator:
         return self._wrap_with_personality(body, mood_ctx, topic="skills")
 
     def _handle_email(self, user_input: str, mood_ctx) -> str:
-        if "resumo" in user_input.lower() or "brief" in user_input.lower():
-            body = self.email.daily_brief()
-        else:
-            summaries = self.email.fetch_and_classify(limit=10)
-            lines = [f"📬 **{len(summaries)} e-mails recentes:**", ""]
-            for s in summaries:
-                lines.append(f"• **[{s.category}]** {s.sender}: {s.subject}")
-                lines.append(f"  {s.summary}")
-                if s.draft_reply:
-                    lines.append(f"  💬 _Rascunho:_ {s.draft_reply[:140]}...")
-            body = "\n".join(lines)
+        setup = self._handle_email_setup(user_input)
+        if setup is not None:
+            return setup
+
+        try:
+            if "resumo" in user_input.lower() or "brief" in user_input.lower():
+                body = self.email.daily_brief()
+            else:
+                summaries = self.email.fetch_and_classify(limit=10)
+                lines = [f"📧 **{len(summaries)} e-mails recentes:**", ""]
+                for s in summaries:
+                    lines.append(f"• **[{s.category}]** {s.sender}: {s.subject}")
+                    lines.append(f"  {s.summary}")
+                    if s.draft_reply:
+                        lines.append(f"  💬 _Rascunho:_ {s.draft_reply[:140]}...")
+                body = "\n".join(lines)
+        except RuntimeError:
+            # Conta sem configuração: orienta o usuário em vez de dar erro genérico
+            return self.email.setup_guide()
         return self._wrap_with_personality(body, mood_ctx, topic="email")
+
+    def _handle_email_setup(self, user_input):
+        """
+        Configura a conta de e-mail pelo chat: quando o usuário informa dados,
+        guarda o que vier e pergunta o que ainda faltar.
+        Retorna None quando a mensagem não é sobre configuração.
+        """
+        setup_words = ("configur", "imap", "smtp", "senha", "minha conta", "conectar")
+        mentions_setup = any(w in user_input.lower() for w in setup_words)
+        data = self.email.extract_config(user_input)
+        has_credentials = bool(
+            data.get("password")
+            or (data.get("username") and mentions_setup)
+            or (data.get("imap_host") and mentions_setup)
+        )
+
+        if not has_credentials:
+            if mentions_setup:
+                return self.email.setup_guide()
+            return None  # consulta normal da caixa de entrada
+
+        # Dados de acesso informados: salva e pede o que faltar
+        self.email.save_config(
+            imap_host=data.get("imap_host"),
+            imap_port=data.get("imap_port"),
+            username=data.get("username"),
+            password=data.get("password"),
+        )
+        missing = self.email.missing_fields()
+        if missing:
+            return (
+                "📝 Guardei o que você me passou — fica salvo apenas neste computador.\n\n"
+                "Ainda preciso de: **" + "**, **".join(missing) + "**.\n\n"
+                "Me envie assim:\n"
+                "\`imap.seuprovedor.com.br usuário: voce@provedor.com.br senha: SUA_SENHA\`"
+            )
+
+        ok, error = self.email.test_connection()
+        if ok:
+            return (
+                "✅ **E-mail configurado e testado!** (" + str(CONFIG.email.username) + ")\n\n"
+                "Já posso ler sua caixa de entrada — é só pedir: _\"resuma meus e-mails\"_.\n\n"
+                "_Sua senha fica salva apenas neste computador._"
+            )
+        return (
+            "⚠️ Salvei seus dados, mas o servidor **" + str(CONFIG.email.imap_host) + "** não aceitou:\n"
+            "\`" + error + "\`\n\n"
+            "Confirme o servidor IMAP exato do seu provedor e me envie de novo — "
+            "por exemplo: \`imap.seuprovedor.com.br\` — que eu atualizo e testo de novo."
+        )
+
+    def _contains_credentials(self, text: str) -> bool:
+        """Mensagens com senha não vão para extração de fatos (privacidade)."""
+        try:
+            return bool(self.email.extract_config(text).get("password"))
+        except Exception:
+            return False
 
     def _handle_decision(self, user_input: str, mood_ctx) -> str:
         options = self._extract_options(user_input) or ["Sim", "Não", "Esperar"]
