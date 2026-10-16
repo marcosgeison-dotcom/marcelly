@@ -167,6 +167,45 @@ class EmailModule:
         except Exception as e:
             return False, str(e)
 
+    def candidate_hosts(self) -> list:
+        """Servidores alternativos plausíveis para testar quando o informado falha."""
+        candidates = []
+        if CONFIG.email.username:
+            domain = CONFIG.email.username.split("@")[-1].lower()
+            known = KNOWN_IMAP_HOSTS.get(domain)
+            if known:
+                candidates.append(known)
+            for prefix in ("mail.", "imap.", ""):
+                host = prefix + domain
+                if host not in candidates:
+                    candidates.append(host)
+            # Hospedagens brasileiras (Locaweb e similares) usam servidor compartilhado
+            if domain.endswith(".com.br") and "email-ssl.com.br" not in candidates:
+                candidates.append("email-ssl.com.br")
+        return candidates
+
+    def try_alternative_hosts(self):
+        """
+        Quando o servidor informado falha, testa candidatos alternativos.
+        Retorna (ok, erro, servidor_que_funcionou, servidores_testados).
+        Em caso de sucesso, já salva a configuração com o servidor que funcionou.
+        """
+        original = CONFIG.email.imap_host
+        tried = []
+        last_error = ""
+        for host in self.candidate_hosts():
+            if host == original:
+                continue
+            tried.append(host)
+            CONFIG.email.imap_host = host
+            ok, err = self.test_connection()
+            if ok:
+                self.save_config(imap_host=host)
+                return True, "", host, tried
+            last_error = err
+        CONFIG.email.imap_host = original
+        return False, last_error, None, tried
+
     # ---- Conexão e leitura -------------------------------------------------
     def _connect(self) -> IMAPClient:
         if not CONFIG.email.imap_host or not CONFIG.email.username or not CONFIG.email.password:
