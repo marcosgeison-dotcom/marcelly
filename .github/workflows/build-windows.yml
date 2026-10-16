@@ -29,7 +29,7 @@ jobs:
           pip install pyinstaller
 
       - name: Compilar Marcelly.exe
-        run: pyinstaller --onefile --noconsole --icon ui/icon.ico --name Marcelly --add-data "ui;ui" --collect-all tydex --collect-all brier --collect-all uvicorn --collect-all faster_whisper --collect-all pyttsx3 --collect-all webview --collect-all pystray app.py
+        run: pyinstaller --onefile --noconsole --icon ui/icon.ico --name Marcelly --add-data "ui;ui" --collect-all tydex --collect-all brier --collect-all uvicorn --collect-all faster_whisper --collect-all pyttsx3 --collect-all webview --collect-all pystray --collect-submodules core --collect-submodules modules app.py
 
       - name: Anexar exe à release
         uses: softprops/action-gh-release@v2
