@@ -18,11 +18,25 @@
         <div>
           <strong>Marcelly</strong>
           <span class="chat__status">
-            <span class="dot"></span> local · privado · v1.0
+            <span class="dot"></span> local · privado · v1.1
           </span>
         </div>
       </div>
       <div class="chat__actions">
+        <button type="button" class="chat__debug" id="debugBtn" aria-pressed="false" title="Ativar modo de depuração">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="m8 2 1.88 1.88"/>
+            <path d="M14.12 3.88 16 2"/>
+            <path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/>
+            <path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/>
+            <path d="M12 20v-9"/>
+            <path d="M6.53 9C4.6 8.8 3 10.36 3 12.3"/>
+            <path d="M21 12.3c0-1.94-1.6-3.5-3.53-3.3"/>
+            <path d="M8 15c-1.66 0-3 1.34-3 3"/>
+            <path d="M16 15c1.66 0 3 1.34 3 3"/>
+          </svg>
+          <span class="chat__debug-text">Depuração</span>
+        </button>
         <button type="button" class="chat__autostart" id="autostartBtn" aria-pressed="false" title="Ativar inicialização com o Windows">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="M12 2v10"/>
@@ -30,10 +44,10 @@
           </svg>
           <span class="chat__autostart-text">Iniciar com o Windows</span>
         </button>
-      <div class="chat__mood" id="moodIndicator" title="Humor do dia">
-        <span class="chat__mood-emoji">U0001f642</span>
-        <span class="chat__mood-label" id="moodLabel">neutro</span>
-      </div>
+        <div class="chat__mood" id="moodIndicator" title="Humor do dia">
+          <span class="chat__mood-emoji">🙂</span>
+          <span class="chat__mood-label" id="moodLabel">neutro</span>
+        </div>
       </div>
     </header>
 
@@ -42,10 +56,11 @@
         <div class="msg__avatar">M</div>
         <div class="msg__bubble">
           <p>Oi! Sou a <strong>Marcelly</strong>. Posso te ajudar com e-mails,
-          decisões e direcionamentos — tudo rodando aqui no seu computador.</p>
+          decisões, direcionamentos e tarefas — tudo rodando aqui no seu computador.</p>
           <p class="msg__hint">Escreva ou clique no <em>microfone</em> e fale:
-          <em>"resuma meus e-mails"</em>, <em>"devo aceitar a proposta?"</em> ou
-          <em>"me dê opções para o jantar"</em>.</p>
+          <em>"resuma meus e-mails"</em>, <em>"devo aceitar a proposta?"</em>,
+          <em>"monte um plano para hoje"</em> ou <em>"me lembre de ligar para o João às 15h"</em>.
+          Diga <em>"quais agentes você tem?"</em> para ver a lista de agentes instalados.</p>
         </div>
       </div>
     </main>
@@ -71,6 +86,15 @@
         </svg>
       </button>
     </form>
+
+    <aside class="debug-panel" id="debugPanel" hidden>
+      <div class="debug-panel__head">
+        <strong>Depuração</strong>
+        <span class="debug-panel__note">eventos locais — nada sai da máquina</span>
+        <button type="button" id="debugClearBtn" class="debug-panel__clear" title="Limpar eventos">Limpar</button>
+      </div>
+      <div class="debug-panel__list" id="debugList" aria-live="polite"></div>
+    </aside>
 
     <div class="chat__typing" id="typingIndicator" hidden>
       <span></span><span></span><span></span>
