@@ -17,6 +17,7 @@ from core.memory import Memory
 from core.mood_detector import MoodDetector
 from core.ollama_client import OllamaClient
 from core.personality import Personality
+from core.skills import SkillRegistry
 from modules.chat_module import ChatModule
 from modules.decision_module import DecisionModule
 from modules.email_module import EmailModule
@@ -42,6 +43,9 @@ class MarcellyOrchestrator:
 
         # Agentes locais — instalados junto com o executável
         self.agents = AgentRegistry(memory=self.memory, email_module=self.email)
+
+        # Skills locais — as 11 habilidades instaladas junto com o executável
+        self.skills = SkillRegistry(self)
 
     def _ensure_ollama(self) -> bool:
         """Configuração inicial: garante Ollama instalado, rodando e com os modelos."""
@@ -176,6 +180,8 @@ class MarcellyOrchestrator:
             text = self._handle_guidance(user_input, mood_ctx)
         elif routing.intent == "agents":
             text = self._handle_agents(user_input, mood_ctx)
+        elif routing.intent == "skills":
+            text = self._handle_skills(user_input, mood_ctx)
         else:
             text = self._handle_chat(user_input, mood_ctx)
 
@@ -230,6 +236,10 @@ class MarcellyOrchestrator:
     def _handle_agents(self, user_input: str, mood_ctx) -> str:
         body = self.agents.dispatch(user_input)
         return self._wrap_with_personality(body, mood_ctx, topic="agents")
+
+    def _handle_skills(self, user_input: str, mood_ctx) -> str:
+        body = self.skills.dispatch(user_input)
+        return self._wrap_with_personality(body, mood_ctx, topic="skills")
 
     def _handle_email(self, user_input: str, mood_ctx) -> str:
         if "resumo" in user_input.lower() or "brief" in user_input.lower():
