@@ -272,6 +272,10 @@ if __name__ == "__main__":
         sys.exit(1)
     # Pré-carrega o modelo em segundo plano — primeira mensagem rápida
     threading.Thread(target=orchestrator.llm.warmup, daemon=True).start()
+    # Mantem o motor local (llama-server) em prioridade baixa:
+    # a tela nunca congela mesmo com o modelo gerando texto.
+    from core.resource import start_priority_guard
+    start_priority_guard()
     # Atalho na Área de Trabalho + início junto com o Windows (1ª execução)
     create_desktop_shortcut()
     if not get_autostart():
