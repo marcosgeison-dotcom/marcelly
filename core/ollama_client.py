@@ -80,10 +80,10 @@ class OllamaClient:
         system = (
             "Você é um classificador de intenções. Dado o texto do usuário, "
             "retorne APENAS um JSON com os campos: "
-            "'intent' (chat|email|decision|guidance|automation), "
+            "'intent' (chat|email|decision|guidance|agents|skills|automation), "
             "'confidence' (0.0 a 1.0), "
             "'reasoning' (explicação curta em português). "
-            "Use 'chat' para conversa casual, saudações, agradecimentos ou "
+            "Use 'agents' para lembretes, planos e rotinas; 'skills' para resumos, busca no historico, memoria, habitos e catalogo de habilidades. Use 'chat' para conversa casual, saudações, agradecimentos ou "
             "perguntas gerais que não caibam nas outras frentes. "
             "Não gere texto fora do JSON."
         )
