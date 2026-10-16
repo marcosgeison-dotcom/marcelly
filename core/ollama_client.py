@@ -40,6 +40,7 @@ class OllamaClient:
                 messages=messages,
                 options={
                     "temperature": CONFIG.ollama.temperature,
+                    "num_thread": CONFIG.ollama.num_thread,
                     "num_ctx": 1024 if rapid else 2048,
                     "num_predict": 160 if rapid else 400,
                 },
@@ -66,6 +67,7 @@ class OllamaClient:
                 messages=messages,
                 options={
                     "temperature": CONFIG.ollama.temperature,
+                    "num_thread": CONFIG.ollama.num_thread,
                     "num_ctx": 1024 if rapid else 2048,
                     "num_predict": 160 if rapid else 400,
                 },
@@ -115,7 +117,7 @@ class OllamaClient:
             self.client.chat(
                 model=CONFIG.ollama.model,
                 messages=[{"role": "user", "content": "ok"}],
-                options={"num_predict": 1, "num_ctx": 512},
+                options={"num_predict": 1, "num_ctx": 512, "num_thread": CONFIG.ollama.num_thread},
                 keep_alive=-1  # modelo permanece carregado: sem recarga a cada volta,
             )
         except Exception:
