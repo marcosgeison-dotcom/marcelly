@@ -10,6 +10,7 @@ import time
 from collections import Counter
 
 from core.debug import DEBUG
+from core.performance import PERF
 
 
 def try_alternatives(label: str, steps, retries: int = 1, delay: float = 0.8) -> str:
@@ -52,7 +53,9 @@ def chat_with_retry(llm, prompt: str, system: str = "", format_json: bool = Fals
                     retries: int = 1, delay: float = 0.8) -> str:
     """Chamada ao modelo local com nova tentativa automatica antes de desistir."""
     last = None
-    for attempt in range(retries + 1):
+    # No modo rapido, sem repeticao: entrega a resposta na primeira tentativa
+    attempts = 0 if PERF.is_accelerated() else retries
+    for attempt in range(attempts + 1):
         try:
             return llm.chat(prompt, system=system, format_json=format_json)
         except Exception as exc:
