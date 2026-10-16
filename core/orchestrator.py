@@ -28,6 +28,16 @@ log = logging.getLogger("marcelly")
 console = Console()
 
 
+def _emit(emit, **payload):
+    """Envia eventos em tempo real para a interface (status e tokens)."""
+    if not emit:
+        return
+    try:
+        emit(payload)
+    except Exception:
+        pass
+
+
 class MarcellyOrchestrator:
     def __init__(self):
         self.router = IntentRouter()
@@ -151,13 +161,14 @@ class MarcellyOrchestrator:
             ))
         return _server_ok() and not failed
 
-    def handle(self, user_input: str) -> dict[str, Any]:
+    def handle(self, user_input: str, emit=None) -> dict[str, Any]:
         """
         Processa uma entrada e devolve:
         { "text": str, "meta": { "intent", "mood", ... } }
         """
         mood_ctx = self.mood.detect(user_input)
         DEBUG.log("mood", mood=mood_ctx.mood, time_of_day=mood_ctx.time_of_day)
+        _emit(emit, type="status", value="🔎 Analisando o pedido...")
         routing = self.router.route(user_input)
         DEBUG.log(
             "routing",
@@ -173,17 +184,26 @@ class MarcellyOrchestrator:
             DEBUG.log("error", where="memoria.fatos", error=str(e))
 
         if routing.intent == "email":
+            _emit(emit, type="status", value="📧 Agente de E-mail abrindo sua caixa de entrada...")
             text = self._handle_email(user_input, mood_ctx)
         elif routing.intent == "decision":
+            _emit(emit, type="status", value="⚖️ Analisando as opções da decisão...")
             text = self._handle_decision(user_input, mood_ctx)
         elif routing.intent == "guidance":
+            _emit(emit, type="status", value="🧭 Mapeando alternativas para você...")
             text = self._handle_guidance(user_input, mood_ctx)
         elif routing.intent == "agents":
+            agent = self.agents.pick(user_input)
+            _emit(emit, type="status", value=(
+                f"{agent.emoji} {agent.name} em ação..." if agent
+                else "🤖 Consultando o catálogo de agentes..."
+            ))
             text = self._handle_agents(user_input, mood_ctx)
         elif routing.intent == "skills":
+            _emit(emit, type="status", value="🛠️ Revisando minhas habilidades...")
             text = self._handle_skills(user_input, mood_ctx)
         else:
-            text = self._handle_chat(user_input, mood_ctx)
+            text = self._handle_chat(user_input, mood_ctx, emit)
 
         try:
             self.memory.log_interaction(
@@ -216,7 +236,7 @@ class MarcellyOrchestrator:
         t = text.lower().strip()
         return len(t) < 30 and any(c in t for c in casuals)
 
-    def _handle_chat(self, user_input: str, mood_ctx) -> str:
+    def _handle_chat(self, user_input: str, mood_ctx, emit=None) -> str:
         system = self.personality.build_system_prompt(
             mood_ctx, user_name=self.memory.profile.get("name", "")
         )
@@ -224,7 +244,14 @@ class MarcellyOrchestrator:
         if context:
             system += "\n\n" + context
 
-        reply = self.chat.reply(user_input, system).strip()
+        _emit(emit, type="status", value="✍️ Escrevendo a resposta...")
+        pieces = []
+        for piece in self.chat.reply_stream(user_input, system):
+            pieces.append(piece)
+            _emit(emit, type="token", value=piece)
+        reply = "".join(pieces).strip()
+        if not reply:
+            reply = self.chat.reply(user_input, system).strip()
         opener = self.personality.opener(mood_ctx)
 
         parts = [f"{opener} {reply}" if opener else reply]
