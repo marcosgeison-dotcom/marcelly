@@ -59,6 +59,54 @@ async def update_debug(enabled: bool = Body(..., embed=True)):
     DEBUG.set_enabled(enabled)
     return {"enabled": DEBUG.enabled, "events": DEBUG.recent(100)}
 
+@app.get("/api/history")
+async def history(day: str = None):
+    """Histórico separado por dia (sem 'day': lista de dias; com 'day': o dia escolhido)."""
+    memory = orchestrator.memory
+    if day:
+        return {"day": day, "items": memory.interactions_by_day(day)}
+    return {"days": memory.history_days()}
+
+
+@app.get("/api/search")
+async def search(q: str = ""):
+    """Busca por assunto no histórico local."""
+    q = q.strip()
+    if not q:
+        return {"q": "", "items": []}
+    return {"q": q, "items": memory_search(q)}
+
+
+def memory_search(q: str):
+    return orchestrator.memory.search_interactions(q)
+
+
+@app.get("/api/storage")
+async def storage_check():
+    """A cada 120 dias, sinaliza que há registros antigos que podem ser arquivados."""
+    memory = orchestrator.memory
+    days = memory.days_since_cleanup_check()
+    if days is None:
+        memory.mark_cleanup_check()
+        return {"due": False, "old_records": 0, "days_since": 0}
+    old = memory.count_interactions_older_than()
+    return {"due": days >= 120, "old_records": old, "days_since": int(days)}
+
+
+@app.post("/api/storage/archive")
+async def storage_archive():
+    """Salva cópia dos registros antigos em JSON local e libera espaço no banco."""
+    result = orchestrator.memory.archive_old_interactions()
+    orchestrator.memory.mark_cleanup_check()
+    return result
+
+
+@app.post("/api/storage/postpone")
+async def storage_postpone():
+    """Adia o aviso por mais 120 dias."""
+    orchestrator.memory.mark_cleanup_check()
+    return {"due": False}
+
 
 async def _log_and_send_debug(ws: WebSocket, started: float, response: dict):
     event = DEBUG.log(
