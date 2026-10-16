@@ -230,32 +230,65 @@ class EmailModule:
         return "".join(decoded)
 
     def fetch_and_classify(self, limit: int = 20) -> list[EmailSummary]:
-        """Busca e-mails recentes, classifica e gera resumos + rascunhos."""
-        summaries: list[EmailSummary] = []
+        """Busca e-mails recentes e classifica a caixa inteira em UMA chamada
+        do modelo (em lote) — em vez de uma chamada por e-mail, que levava
+        minutos em maquinas modestas."""
         with self._connect() as client:
             client.select_folder("INBOX", readonly=True)
             uids = client.search(["UNSEEN"])[-limit:]
             if not uids:
-                return summaries
+                return []
 
             messages = client.fetch(uids, ["RFC822"])
+            parsed = []
             for uid, data in messages.items():
                 msg = email.message_from_bytes(data[b"RFC822"])
-                subject = self._decode(msg.get("Subject", ""))
-                sender = self._decode(msg.get("From", ""))
-                body = self._extract_body(msg)
-
-                classified = self._classify(subject, body)
-                summaries.append(
-                    EmailSummary(
-                        subject=subject,
-                        sender=sender,
-                        category=classified["category"],
-                        summary=classified["summary"],
-                        draft_reply=classified.get("draft_reply"),
-                    )
+                parsed.append(
+                    {
+                        "subject": self._decode(msg.get("Subject", "")),
+                        "sender": self._decode(msg.get("From", "")),
+                        "body": self._extract_body(msg),
+                    }
                 )
+        classified = self._classify_batch(parsed)
+        summaries: list[EmailSummary] = []
+        for item, info in zip(parsed, classified):
+            summaries.append(
+                EmailSummary(
+                    subject=item["subject"],
+                    sender=item["sender"],
+                    category=info.get("category", "fyi"),
+                    summary=info.get("summary") or item["subject"],
+                    draft_reply=info.get("draft_reply"),
+                )
+            )
         return summaries
+
+    def _classify_batch(self, items: list[dict]) -> list[dict]:
+        """Classifica todos os e-mails de uma vez, numa única chamada local."""
+        if not items:
+            return []
+        listing = "\n\n".join(
+            f"[{i}] Assunto: {it['subject']}\nDe: {it['sender']}\nCorpo: {it['body'][:600]}"
+            for i, it in enumerate(items)
+        )
+        system = (
+            'Você é um assistente de e-mail. Recebe uma lista de e-mails numerados '
+            'e retorna APENAS JSON no formato: '
+            '{"emails": [{"index": 0, "category": "urgent"|"needs_reply"|"fyi", '
+            '"summary": "resumo em uma frase", "draft_reply": "rascunho curto de 2 linhas ou null"}]}. '
+            'Um item por e-mail, na mesma ordem da lista. Resumos e rascunhos bem curtos.'
+        )
+        prompt = f"E-mails:\n\n{listing}"
+        raw = self.llm.chat(prompt, system=system, format_json=True, max_tokens=1600)
+        def _fallback(it):
+            return {"category": "fyi", "summary": it["subject"], "draft_reply": None}
+        try:
+            data = json.loads(raw)
+            by_index = {entry.get("index"): entry for entry in data.get("emails", [])}
+            return [by_index.get(i) or _fallback(it) for i, it in enumerate(items)]
+        except Exception:
+            return [_fallback(it) for it in items]
 
     def _extract_body(self, msg) -> str:
         if msg.is_multipart():
