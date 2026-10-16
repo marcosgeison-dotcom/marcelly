@@ -19,6 +19,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from core.debug import DEBUG
+from core.files import extract_text
 from core.orchestrator import MarcellyOrchestrator
 from core.startup import create_desktop_shortcut, get_autostart, set_autostart
 from core.voice import VoiceEngine
@@ -218,16 +219,38 @@ async def websocket_endpoint(ws: WebSocket):
                     voice.speak(response["text"])
                 continue
 
-            # ---------- Mensagem de texto ----------
+            # ---------- Mensagem de texto (com ou sem anexo) ----------
             user_message = payload.get("message", "").strip()
-            if not user_message:
+            attachment = payload.get("attachment") or {}
+            attach_name = str(attachment.get("name", "") or "")
+            attachment_text = ""
+            if attach_name:
+                await ws.send_json({"type": "status", "value": "📄 Lendo o arquivo anexado..."})
+                try:
+                    data = base64.b64decode(attachment.get("content_b64") or "")
+                    attachment_text = extract_text(attach_name, data)
+                except Exception as e:
+                    DEBUG.log("error", where="anexo", error=str(e))
+                if not attachment_text:
+                    await ws.send_json({"type": "typing", "value": False})
+                    await ws.send_json({
+                        "type": "message",
+                        "text": "⚠️ Não consegui ler o arquivo **" + attach_name + "**. Formatos aceitos: .txt, .md, .csv, .json, código-fonte, .pdf e .docx.",
+                        "meta": {"intent": "attachment_error"},
+                    })
+                    continue
+
+            if not user_message and not attach_name:
                 continue
 
             await ws.send_json({"type": "typing", "value": True})
-            DEBUG.log("request", source="texto", message=user_message)
+            DEBUG.log("request", source="anexo" if attach_name else "texto", message=user_message or attach_name)
             started = time.time()
             try:
-                response = await asyncio.to_thread(orchestrator.handle, user_message, _emit_bridge(ws))
+                response = await asyncio.to_thread(
+                    orchestrator.handle, user_message, _emit_bridge(ws),
+                    attachment={"name": attach_name, "text": attachment_text} if attach_name else None,
+                )
             except Exception as e:
                 response = {"text": f"⚠️ Algo deu errado: {e}", "meta": {"intent": "error"}}
                 DEBUG.log("error", where="texto", error=str(e))
