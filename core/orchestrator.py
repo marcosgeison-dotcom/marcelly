@@ -300,7 +300,7 @@ class MarcellyOrchestrator:
         body = self.skills.dispatch(user_input)
         return self._wrap_with_personality(body, mood_ctx, topic="skills")
 
-        def _handle_email(self, user_input: str, mood_ctx) -> str:
+    def _handle_email(self, user_input: str, mood_ctx) -> str:
         setup = self._handle_email_setup(user_input)
         if setup is not None:
             return setup
