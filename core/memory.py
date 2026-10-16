@@ -214,3 +214,83 @@ class Memory:
         if not lines:
             return ""
         return "Contexto aprendido:\n- " + "\n- ".join(lines)
+
+    # ---------- Histórico por dia ----------
+    def history_days(self, limit: int = 60) -> list:
+        """Dias com conversas registradas, do mais recente para o mais antigo."""
+        rows = self.conn.execute(
+            "SELECT date(ts, 'unixepoch', 'localtime') AS day, COUNT(*) AS n "
+            "FROM interactions GROUP BY day ORDER BY day DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def interactions_by_day(self, day: str, limit: int = 200) -> list:
+        rows = self.conn.execute(
+            "SELECT ts, user_message, intent, mood, response FROM interactions "
+            "WHERE date(ts, 'unixepoch', 'localtime') = ? ORDER BY ts ASC LIMIT ?",
+            (day, limit),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def search_interactions(self, query: str, limit: int = 30) -> list:
+        """Busca por assunto no histórico (texto contido em pedidos e respostas)."""
+        pattern = "%" + query + "%"
+        rows = self.conn.execute(
+            "SELECT ts, user_message, intent, response FROM interactions "
+            "WHERE user_message LIKE ? OR response LIKE ? "
+            "ORDER BY ts DESC LIMIT ?",
+            (pattern, pattern, limit),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    # ---------- Manutenção: ciclo de 120 dias ----------
+    CLEANUP_INTERVAL_DAYS = 120
+
+    def days_since_cleanup_check(self):
+        """Dias desde o último aviso de limpeza; None quando é a primeira execução."""
+        last = self.get_preference("last_cleanup_check")
+        if not last:
+            return None
+        try:
+            return (time.time() - float(last)) / 86400.0
+        except (TypeError, ValueError):
+            return None
+
+    def mark_cleanup_check(self):
+        self.set_preference("last_cleanup_check", str(time.time()))
+
+    def count_interactions_older_than(self, days: int = CLEANUP_INTERVAL_DAYS) -> int:
+        row = self.conn.execute(
+            "SELECT COUNT(*) FROM interactions WHERE ts < ?",
+            (time.time() - days * 86400,),
+        ).fetchone()
+        return row[0]
+
+    def archive_old_interactions(self, days: int = CLEANUP_INTERVAL_DAYS) -> dict:
+        """Salva uma cópia das interações antigas em JSON local e libera espaço no banco."""
+        cutoff = time.time() - days * 86400
+        rows = self.conn.execute(
+            "SELECT id, ts, user_message, intent, mood, response FROM interactions "
+            "WHERE ts < ? ORDER BY ts ASC",
+            (cutoff,),
+        ).fetchall()
+        if not rows:
+            return {"archived": 0, "file": None}
+        data_dir = DB_PATH.parent
+        stamp = time.strftime("%Y%m%d_%H%M%S")
+        out = data_dir / ("arquivo_interacoes_" + stamp + ".json")
+        payload = [
+            {
+                "data": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(r["ts"])),
+                "mensagem": r["user_message"],
+                "intencao": r["intent"],
+                "humor": r["mood"],
+                "resposta": r["response"],
+            }
+            for r in rows
+        ]
+        out.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        self.conn.execute("DELETE FROM interactions WHERE ts < ?", (cutoff,))
+        self.conn.commit()
+        return {"archived": len(rows), "file": out.name}
