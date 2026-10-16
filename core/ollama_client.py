@@ -39,6 +39,7 @@ class OllamaClient:
                     "num_ctx": 4096,
                 },
                 format="json" if format_json else "",
+                keep_alive="30m",
             )
             return response.message.content
         except ResponseError as e:
@@ -60,6 +61,7 @@ class OllamaClient:
                     "num_ctx": 4096,
                 },
                 stream=True,
+                keep_alive="30m",
             )
             for part in stream:
                 piece = part.message.content
