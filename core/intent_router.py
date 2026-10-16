@@ -10,7 +10,7 @@ from core.ollama_client import OllamaClient
 
 @dataclass
 class RoutingResult:
-    intent: str          # "chat" | "email" | "decision" | "guidance" | "agents" | "automation"
+    intent: str          # "chat" | "email" | "decision" | "guidance" | "agents" | "skills" | "automation"
     confidence: float
     reasoning: str
     module: str          # nome do módulo a acionar
@@ -37,6 +37,14 @@ KEYWORDS = {
         r"\b(agente|agentes|quais agentes)\b",
         r"\b(lembrete|lembretes|me lembre|lembra-?me|me avise)\b",
         r"\b(plano|planeje|planejar|monte uma rotina|passo a passo)\b",
+    ],
+}
+    "skills": [
+        r"\b(skills?|habilidades?|o que voc[êe] sabe fazer)\b",
+        r"\b(retrospectiva|revis(ã|a)o dos? meus? pedidos?|melhorias? e falhas?|como posso melhorar)\b",
+        r"\b(busque|pesquise|procure no hist[óo]rico)\b",
+        r"\b(hist[óo]rico das? (minhas )?conversas?|conversas? por dia)\b",
+        r"\b(o que voc[êe] sabe sobre mim|meus fatos|minha mem[óo]ria)\b",
     ],
 }
 
