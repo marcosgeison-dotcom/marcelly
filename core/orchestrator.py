@@ -129,6 +129,7 @@ class MarcellyOrchestrator:
                 subprocess.Popen(
                     ["ollama", "serve"],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
                 )
                 for _ in range(10):
                     time.sleep(2)
