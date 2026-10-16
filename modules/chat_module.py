@@ -11,3 +11,8 @@ class ChatModule:
 
     def reply(self, user_input: str, system_prompt: str) -> str:
         return self.llm.chat(user_input, system=system_prompt).strip()
+
+    def reply_stream(self, user_input: str, system_prompt: str):
+        """Gera a resposta em pedaços (streaming local)."""
+        for piece in self.llm.chat_stream(user_input, system=system_prompt):
+            yield piece
