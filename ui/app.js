@@ -5,6 +5,8 @@
   const sendBtn = document.getElementById('sendBtn');
   const micBtn = document.getElementById('micBtn');
   const typing = document.getElementById('typingIndicator');
+  const statusChip = document.getElementById('statusChip');
+  const statusText = document.getElementById('statusText');
   const moodEmoji = document.querySelector('.chat__mood-emoji');
   const moodLabel = document.getElementById('moodLabel');
   const autostartBtn = document.getElementById('autostartBtn');
@@ -26,11 +28,60 @@
     micBtn.disabled = value;
   }
 
+  // ---------- Streaming + agentes em ação ----------
+  let streamWrap = null;
+  let streamBubble = null;
+  let streamBuf = '';
+
+  function resetStream() {
+    streamWrap = null;
+    streamBubble = null;
+    streamBuf = '';
+  }
+
+  function hideStatus() {
+    if (statusChip) statusChip.hidden = true;
+  }
+
+  function createStreamingMessage() {
+    const wrap = document.createElement('div');
+    wrap.className = 'msg msg--bot';
+    const avatar = document.createElement('div');
+    avatar.className = 'msg__avatar';
+    avatar.textContent = 'M';
+    const bubble = document.createElement('div');
+    bubble.className = 'msg__bubble msg__bubble--streaming';
+    bubble.innerHTML = '<p><span class="stream-cursor">▌</span></p>';
+    wrap.append(avatar, bubble);
+    chatBody.appendChild(wrap);
+    chatBody.scrollTop = chatBody.scrollHeight;
+    return { wrap, bubble };
+  }
+
   ws.addEventListener('message', (ev) => {
     const data = JSON.parse(ev.data);
     if (data.type === 'typing') {
       typing.hidden = !data.value;
-      if (!data.value) setBusy(false);
+      if (!data.value) { setBusy(false); hideStatus(); }
+      return;
+    }
+    if (data.type === 'status') {
+      if (statusChip) {
+        statusText.textContent = data.value || '';
+        statusChip.hidden = !data.value;
+      }
+      return;
+    }
+    if (data.type === 'token') {
+      hideStatus();
+      if (!streamWrap) {
+        const m = createStreamingMessage();
+        streamWrap = m.wrap;
+        streamBubble = m.bubble;
+      }
+      streamBuf += data.token || '';
+      streamBubble.innerHTML = formatText(streamBuf) + '<span class="stream-cursor">▌</span>';
+      chatBody.scrollTop = chatBody.scrollHeight;
       return;
     }
     if (data.type === 'transcribing') {
@@ -47,13 +98,20 @@
       return;
     }
     if (data.type === 'message') {
-      addMessage('bot', data.text);
+      hideStatus();
+      if (streamBubble) {
+        streamBubble.innerHTML = formatText(data.text);
+      } else {
+        addMessage('bot', data.text);
+      }
+      resetStream();
       if (data.meta && data.meta.mood) updateMood(data.meta.mood);
       setBusy(false);
     }
   });
 
   ws.addEventListener('close', () => {
+    hideStatus();
     addMessage('bot', '\u26a0\ufe0f Conex\u00e3o encerrada. Recarregue a p\u00e1gina para reconectar.');
   });
 
@@ -65,6 +123,7 @@
     addMessage('user', text);
     setBusy(true);
     ws.send(JSON.stringify({ message: text }));
+    resetStream();
     input.value = '';
     // ---------- Iniciar com o Windows ----------
   function updateAutostart(enabled) {
