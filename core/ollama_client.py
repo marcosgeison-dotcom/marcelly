@@ -7,6 +7,7 @@ from typing import Any, Optional
 from ollama import Client, ResponseError
 
 from config import CONFIG
+from core.performance import ACCEL_HINT, PERF
 
 
 class OllamaClient:
@@ -25,6 +26,9 @@ class OllamaClient:
         Se format_json=True, usa constrained decoding do Ollama
         para garantir JSON válido.
         """
+        rapid = PERF.is_accelerated()
+        if rapid and not format_json:
+            system = system + ACCEL_HINT
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
@@ -36,8 +40,8 @@ class OllamaClient:
                 messages=messages,
                 options={
                     "temperature": CONFIG.ollama.temperature,
-                    "num_ctx": 2048,
-                    "num_predict": 400,
+                    "num_ctx": 1024 if rapid else 2048,
+                    "num_predict": 160 if rapid else 400,
                 },
                 format="json" if format_json else "",
                 keep_alive=-1  # modelo permanece carregado: sem recarga a cada volta,
@@ -49,6 +53,9 @@ class OllamaClient:
     def chat_stream(self, prompt: str, system: str = "", model: Optional[str] = None):
         """Gera a resposta em pedaços (streaming local) — a primeira palavra
         aparece em ~1 segundo, em vez de esperar a resposta inteira."""
+        rapid = PERF.is_accelerated()
+        if rapid:
+            system = system + ACCEL_HINT
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
@@ -59,8 +66,8 @@ class OllamaClient:
                 messages=messages,
                 options={
                     "temperature": CONFIG.ollama.temperature,
-                    "num_ctx": 2048,
-                    "num_predict": 400,
+                    "num_ctx": 1024 if rapid else 2048,
+                    "num_predict": 160 if rapid else 400,
                 },
                 stream=True,
                 keep_alive=-1  # modelo permanece carregado: sem recarga a cada volta,
