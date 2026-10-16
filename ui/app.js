@@ -101,7 +101,7 @@
     if (data.type === 'message') {
       hideStatus();
       if (streamBubble) {
-        streamBubble.innerHTML = formatText(data.text);
+        streamBubble.innerHTML = formatText(data.text) + timeHtml();
       } else {
         addMessage('bot', data.text);
       }
@@ -200,6 +200,14 @@
     });
   }
 
+
+  function timeHtml() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    return '<span class="msg__time">' + hh + ':' + mm + '</span>';
+  }
+
   function addMessage(role, text) {
     const wrap = document.createElement('div');
     wrap.className = 'msg msg--' + role;
@@ -210,7 +218,7 @@
 
     const bubble = document.createElement('div');
     bubble.className = 'msg__bubble';
-    bubble.innerHTML = formatText(text);
+    bubble.innerHTML = formatText(text) + timeHtml();
 
     wrap.append(avatar, bubble);
     chatBody.appendChild(wrap);
