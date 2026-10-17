@@ -904,3 +904,8 @@ html, body {
 .memory-panel__profile-form button { justify-self: start; border: 1px solid var(--accent); border-radius: 999px; background: rgba(0,229,255,.1); color: var(--accent); padding: 8px 13px; font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; }
 .memory-panel__profile-form button:hover { background: rgba(0,229,255,.18); }
 .memory-panel__profile-form button:disabled { opacity: .55; cursor: wait; }
+
+.memory-panel__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.memory-panel__actions button { border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text-muted); padding: 8px 12px; font: inherit; font-size: .8rem; cursor: pointer; }
+.memory-panel__actions button:hover { border-color: var(--accent); color: var(--accent); }
+.memory-panel__actions .memory-panel__danger:hover { border-color: #ff5470; color: #ff5470; }
