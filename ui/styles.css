@@ -154,8 +154,9 @@ html, body {
 }
 .btn-cancel {
   position: absolute;
-  top: -14px;
-  right: 32px;
+  top: 50%;
+  right: 184px;
+  transform: translateY(-50%);
   background: var(--surface-2);
   color: var(--text-muted);
   border: 1px solid var(--border);
