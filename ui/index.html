@@ -195,6 +195,39 @@
 
   </div>
 
+    <div class="onboarding" id="onboarding" hidden role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+      <div class="onboarding__card">
+        <h2 id="onboardingTitle">Prazer, eu sou a Marcelly</h2>
+        <p>Me conte o essencial para eu te tratar do jeito certo — fica salvo apenas neste computador.</p>
+        <form class="onboarding__form" id="onboardingForm">
+          <label class="onboarding__field">Nome
+            <input id="obName" type="text" required autocomplete="name" />
+          </label>
+          <label class="onboarding__field">Gênero
+            <select id="obGender">
+              <option value="">Prefiro não informar</option>
+              <option value="masculino">Masculino</option>
+              <option value="feminino">Feminino</option>
+              <option value="outro">Outro</option>
+            </select>
+          </label>
+          <label class="onboarding__field">Telefone
+            <input id="obPhone" type="tel" autocomplete="tel" />
+          </label>
+          <label class="onboarding__field">WhatsApp
+            <input id="obWhats" type="tel" />
+          </label>
+          <label class="onboarding__field">E-mail
+            <input id="obEmail" type="email" autocomplete="email" />
+          </label>
+          <div class="onboarding__actions">
+            <button type="button" class="onboarding__skip" id="onboardingSkip">Preencher depois</button>
+            <button type="submit" class="onboarding__save" id="onboardingSave">Começar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
   <script src="/static/app.js"></script>
 </body>
 </html>
