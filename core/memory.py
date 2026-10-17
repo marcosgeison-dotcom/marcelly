@@ -273,6 +273,30 @@ class Memory:
         ).fetchall()
         return [dict(r) for r in rows]
 
+
+    def export_data(self) -> dict:
+        """Retorna uma cópia completa da memória local para backup do usuário."""
+        interactions = self.conn.execute(
+            "SELECT ts, user_message, intent, mood, response FROM interactions ORDER BY ts ASC"
+        ).fetchall()
+        return {
+            "profile": {key: self.profile.get(key, "") for key in self.PROFILE_FIELDS},
+            "facts": [dict(key=f.key, value=f.value, confidence=f.confidence) for f in self.get_facts()],
+            "preferences": self.get_all_preferences(),
+            "patterns": self.get_patterns(),
+            "interactions": [dict(row) for row in interactions],
+        }
+
+    def reset_all(self):
+        """Apaga perfil, memória e histórico exclusivamente desta instalação local."""
+        self.conn.executescript("DELETE FROM interactions; DELETE FROM facts; DELETE FROM preferences; DELETE FROM patterns;")
+        self.conn.commit()
+        self.profile = {
+            "name": "", "gender": "", "phone": "", "whatsapp": "", "email": "",
+            "preferences": {}, "created_at": time.time(),
+        }
+        self.save_profile()
+
     # ---------- Manutenção: ciclo de 120 dias ----------
     CLEANUP_INTERVAL_DAYS = 120
 
