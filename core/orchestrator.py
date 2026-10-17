@@ -26,6 +26,7 @@ from modules.chat_module import ChatModule
 from modules.decision_module import DecisionModule
 from modules.email_module import EmailModule
 from modules.guidance_module import GuidanceModule
+from modules.web_search import search_web
 
 logging.basicConfig(level=CONFIG.log_level)
 log = logging.getLogger("marcelly")
@@ -40,6 +41,17 @@ def _emit(emit, **payload):
         emit(payload)
     except Exception:
         pass
+
+
+WEB_QUERY_PATTERN = re.compile(
+    r"\b(notícia|noticias|hoje|agora|atual|pesquisa|eleição|eleicoes|política|"
+    r"clima|temperatura|jogo|resultado)\b",
+    re.IGNORECASE,
+)
+
+
+def _needs_web_search(text: str) -> bool:
+    return bool(WEB_QUERY_PATTERN.search(text))
 
 
 class MarcellyOrchestrator:
@@ -179,7 +191,12 @@ class MarcellyOrchestrator:
         mood_ctx = self.mood.detect(user_input)
         DEBUG.log("mood", mood=mood_ctx.mood, time_of_day=mood_ctx.time_of_day)
 
-        safeguarded = safe_current_affairs_reply(user_input)
+        web_context = ""
+        if _needs_web_search(user_input):
+            _emit(emit, type="status", value="🌐 Buscando informações atualizadas...")
+            web_context = search_web(user_input)
+
+        safeguarded = safe_current_affairs_reply(user_input) if not web_context else None
         if safeguarded:
             PERF.finish()
             self._remember_async(user_input, "knowledge_safety", mood_ctx.mood, safeguarded)
@@ -195,6 +212,8 @@ class MarcellyOrchestrator:
             }
         _emit(emit, type="status", value="🔎 Analisando o pedido...")
         routing = self.router.route(user_input)
+        if web_context:
+            routing.intent = "chat"
         DEBUG.log(
             "routing",
             intent=routing.intent,
@@ -257,7 +276,7 @@ class MarcellyOrchestrator:
             _emit(emit, type="status", value="🛠️ Revisando minhas habilidades...")
             text = self._handle_skills(user_input, mood_ctx)
         else:
-            text = self._handle_chat(user_input, mood_ctx, emit)
+            text = self._handle_chat(user_input, mood_ctx, emit, web_context=web_context)
 
         # Registra a interação em segundo plano — não segura a resposta
         # (o modelo de embeddings carregaria na hora e atrasaria o fim)
@@ -323,11 +342,20 @@ class MarcellyOrchestrator:
         t = text.lower().strip()
         return len(t) < 30 and any(c in t for c in casuals)
 
-    def _handle_chat(self, user_input: str, mood_ctx, emit=None) -> str:
+    def _handle_chat(self, user_input: str, mood_ctx, emit=None, web_context: str = "") -> str:
         system = self.personality.build_system_prompt(
             mood_ctx, user_name=self.memory.profile.get("name", ""),
             profile=self.memory.profile,
         )
+        if web_context:
+            system += (
+                "\n\nRESULTADOS DA BUSCA NA WEB EM TEMPO REAL:\n"
+                f"{web_context}\n\n"
+                "Use apenas esses resultados como fonte para fatos atuais. "
+                "Se eles não forem suficientes, diga que não encontrou a informação exata. "
+                "Não invente detalhes nem trate os resultados como confirmação definitiva."
+            )
+
         # No modo rapido, corta o contexto de memoria: o prompt processa mais rapido
         context = "" if PERF.is_accelerated() else self.memory.build_context()
         if context:
