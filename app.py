@@ -239,6 +239,11 @@ async def websocket_endpoint(ws: WebSocket):
             except json.JSONDecodeError:
                 payload = {"message": raw}
 
+            if payload.get("type") == "cancel":
+                await ws.send_json({"type": "typing", "value": False})
+                await ws.send_json({"type": "done", "cancelled": True})
+                continue
+
             # ---------- Comando de voz ----------
             if payload.get("type") == "voice":
                 audio_b64 = payload.get("audio", "")
@@ -277,6 +282,7 @@ async def websocket_endpoint(ws: WebSocket):
                 await _log_and_send_debug(ws, started, response)
                 await ws.send_json({"type": "typing", "value": False})
                 await ws.send_json({"type": "message", **response})
+                await ws.send_json({"type": "done"})
                 if payload.get("speak", True) and response.get("text"):
                     voice.speak(response["text"])
                 continue
