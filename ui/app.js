@@ -74,27 +74,36 @@
     return { wrap, bubble };
   }
 
-  function finishResponse(data = {}) {
-    if (data.type === 'message') {
-      hideStatus();
-      if (streamBubble) {
-        streamBubble.innerHTML = formatText(data.text || streamBuf) + timeHtml();
-      } else if (data.text) {
-        addMessage('bot', data.text);
-      }
-      if (data.meta && data.meta.mood) updateMood(data.meta.mood);
-    }
+  function clearLoading({ reset = true } = {}) {
+    hideStatus();
     if (typingIndicator) {
       typingIndicator.hidden = true;
       typingIndicator.style.display = 'none';
+      typingIndicator.textContent = 'Escrevendo...';
     }
     if (cancelBtn) {
       cancelBtn.hidden = true;
       cancelBtn.style.display = 'none';
     }
     setBusy(false);
-    resetStream();
+    if (reset) resetStream();
   }
+
+  function finishResponse(data = {}) {
+    try {
+      if (data.type === 'message') {
+        if (streamBubble) {
+          streamBubble.innerHTML = formatText(data.text || streamBuf) + timeHtml();
+        } else if (data.text) {
+          addMessage('bot', data.text);
+        }
+        if (data.meta && data.meta.mood) updateMood(data.meta.mood);
+      }
+    } finally {
+      clearLoading();
+    }
+  }
+
 
   ws.addEventListener('message', (ev) => {
     const data = JSON.parse(ev.data);
@@ -107,12 +116,15 @@
         cancelBtn.hidden = !data.value;
         cancelBtn.style.display = data.value ? '' : 'none';
       }
-      if (data.value && !streamWrap) {
+      if (!data.value) {
+        clearLoading({ reset: false });
+        return;
+      }
+      if (!streamWrap) {
         const m = createStreamingMessage();
         streamWrap = m.wrap;
         streamBubble = m.bubble;
       }
-      return;
     }
     if (data.type === 'status') {
       const status = data.value || data.text || '';
@@ -139,19 +151,19 @@
   });
 
   ws.addEventListener('close', () => {
-    hideStatus();
-    addMessage('bot', '\u26a0\ufe0f Conex\u00e3o encerrada. Recarregue a p\u00e1gina para reconectar.');
+    clearLoading();
+    addMessage('bot', '⚠️ Conexão encerrada. Recarregue a página para reconectar.');
+  });
+
+  ws.addEventListener('error', () => {
+    clearLoading();
   });
 
   if (cancelBtn) {
     cancelBtn.addEventListener('click', () => {
       if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'cancel' }));
-      hideStatus();
-      if (typingIndicator) typingIndicator.hidden = true;
-      cancelBtn.hidden = true;
-      setBusy(false);
-      resetStream();
-    });
+      clearLoading();
+    });;
   }
 
   form.addEventListener('submit', async (e) => {
