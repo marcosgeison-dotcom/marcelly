@@ -88,7 +88,14 @@ class IntentRouter:
                 module="chat_module",
             )
 
-        for intent, patterns in KEYWORDS.items():
+        # Ordem de prioridade: pedidos reais primeiro, conversa por último.
+        # Um "Olá Marcelly, acesse meu e-mail..." não é conversa casual —
+        # a saudação no começo não pode roubar o roteamento.
+        for intent in ("email", "decision", "guidance", "agents", "skills", "chat"):
+            patterns = KEYWORDS[intent]
+            # Saudação no meio de um pedido longo não torna o pedido conversa
+            if intent == "chat" and len(user_input) > 80:
+                continue
             for pattern in patterns:
                 if re.search(pattern, user_input, re.IGNORECASE):
                     return RoutingResult(
