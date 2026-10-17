@@ -95,6 +95,19 @@ async def memory_forget(key: str = Body(..., embed=True)):
     return {"ok": orchestrator.memory.forget_fact(key)}
 
 
+@app.get("/api/memory/export")
+async def memory_export():
+    """Backup completo da memória, entregue apenas ao navegador local."""
+    return orchestrator.memory.export_data()
+
+
+@app.post("/api/memory/reset")
+async def memory_reset():
+    """Remove todos os dados pessoais, fatos e conversas desta instalação."""
+    orchestrator.memory.reset_all()
+    return {"ok": True}
+
+
 @app.get("/api/stats")
 async def stats():
     """Uso de CPU e RAM em tempo real (sistema + processo do Marcelly)."""
