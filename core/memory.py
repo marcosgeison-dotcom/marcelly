@@ -74,10 +74,17 @@ class Memory:
         self.conn.commit()
 
     # ---------- Perfil ----------
+    # Campos do perfil pedidos na instalação/primeiro uso
+    PROFILE_FIELDS = ("name", "gender", "phone", "whatsapp", "email")
+
     def _load_profile(self) -> dict:
+        profile = {
+            "name": "", "gender": "", "phone": "", "whatsapp": "", "email": "",
+            "preferences": {}, "created_at": time.time(),
+        }
         if PROFILE_PATH.exists():
-            return json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
-        return {"name": "", "preferences": {}, "created_at": time.time()}
+            profile.update(json.loads(PROFILE_PATH.read_text(encoding="utf-8")))
+        return profile
 
     def save_profile(self):
         PROFILE_PATH.write_text(
@@ -87,6 +94,16 @@ class Memory:
 
     def set_user_name(self, name: str):
         self.profile["name"] = name
+        self.save_profile()
+
+    def update_profile(self, fields: dict):
+        """Salva os dados informados no formulário de instalação/primeiro uso."""
+        for key in self.PROFILE_FIELDS:
+            value = str(fields.get(key) or "").strip()
+            if key == "gender" and value:
+                value = value.lower()
+            if value:
+                self.profile[key] = value
         self.save_profile()
 
     # ---------- Interações ----------
