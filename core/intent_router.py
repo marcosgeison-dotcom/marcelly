@@ -52,11 +52,42 @@ KEYWORDS = {
 }
 
 
+# Perguntas sobre a própria Marcelly ("você pode...?", "você consegue...?",
+# "o que você faz...?") falam SOBRE uma frente, mas não pedem a ação:
+# devem ser respondidas em conversa, em vez de disparar o módulo do tópico
+# (evita despejos de e-mails, relatórios e catálogos fora de hora).
+CAPABILITY_QUESTION = re.compile(
+    r"\bvoc[êe]\s+(?:pode|poderia|consegue|sabe|tem|faz)\b"
+    r"|\b(?:o\s+)?que\s+voc[êe]\s+(?:faz|pode|sabe)\b"
+    r"|\btem\s+como\b",
+    re.IGNORECASE,
+)
+AGENT_CATALOG = re.compile(
+    r"\bquais\s+(?:agentes|skills?|habilidades)\b"
+    r"|\bo\s+que\s+voc[êe]\s+sabe\s+fazer\b",
+    re.IGNORECASE,
+)
+
+
 class IntentRouter:
     def __init__(self):
         self.llm = OllamaClient()
 
     def route(self, user_input: str) -> RoutingResult:
+        # Pergunta sobre capacidades (com "?"): responde em conversa, direto.
+        # "Quais agentes/skills você tem?" continua indo para o catálogo.
+        if (
+            "?" in user_input
+            and CAPABILITY_QUESTION.search(user_input)
+            and not AGENT_CATALOG.search(user_input)
+        ):
+            return RoutingResult(
+                intent="chat",
+                confidence=0.9,
+                reasoning="Pergunta sobre capacidades — responder diretamente em conversa",
+                module="chat_module",
+            )
+
         for intent, patterns in KEYWORDS.items():
             for pattern in patterns:
                 if re.search(pattern, user_input, re.IGNORECASE):
