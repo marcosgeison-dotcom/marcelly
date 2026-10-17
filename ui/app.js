@@ -84,8 +84,14 @@
       }
       if (data.meta && data.meta.mood) updateMood(data.meta.mood);
     }
-    if (typingIndicator) typingIndicator.hidden = true;
-    if (cancelBtn) cancelBtn.hidden = true;
+    if (typingIndicator) {
+      typingIndicator.hidden = true;
+      typingIndicator.style.display = 'none';
+    }
+    if (cancelBtn) {
+      cancelBtn.hidden = true;
+      cancelBtn.style.display = 'none';
+    }
     setBusy(false);
     resetStream();
   }
@@ -93,8 +99,14 @@
   ws.addEventListener('message', (ev) => {
     const data = JSON.parse(ev.data);
     if (data.type === 'typing') {
-      if (typingIndicator) typingIndicator.hidden = !data.value;
-      if (cancelBtn) cancelBtn.hidden = !data.value;
+      if (typingIndicator) {
+        typingIndicator.hidden = !data.value;
+        typingIndicator.style.display = data.value ? '' : 'none';
+      }
+      if (cancelBtn) {
+        cancelBtn.hidden = !data.value;
+        cancelBtn.style.display = data.value ? '' : 'none';
+      }
       if (data.value && !streamWrap) {
         const m = createStreamingMessage();
         streamWrap = m.wrap;
