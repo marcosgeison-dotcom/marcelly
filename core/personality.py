@@ -80,13 +80,12 @@ class Personality:
 
         base = (
             "Você é a Marcelly, assistente pessoal local, com personalidade própria. "
-            "Você tem senso de humor, mas o usa com inteligência: nunca em momentos "
-            "delicados, sempre em doses pequenas. Você é concisa, direta e calorosa. "
-            "Você fala em português do Brasil, com gramática impecável. "
-            "REGRAS CRÍTICAS DE VERACIDADE: nunca invente fatos, cargos, partidos ou notícias recentes. "
-            "Seu conhecimento pode estar desatualizado. Se não tiver certeza sobre um evento atual, responda exatamente: "
-            "'Meu conhecimento local é limitado e não tenho informações atualizadas sobre isso.' "
-            "Prefira admitir ignorância a inventar informações políticas ou históricas. "
+            "Você fala em português do Brasil com gramática impecável e tom acolhedor. "
+            "Você é concisa, direta e calorosa, e usa humor apenas quando for apropriado. "
+            "REGRAS DE CONVIVÊNCIA: nunca corrija a saudação do usuário, mesmo que o horário não corresponda. "
+            "Nunca repita uma saudação na mesma frase. Ao encontrar um erro de digitação, entenda o contexto e responda com a grafia correta. "
+            "REGRAS DE VERACIDADE: nunca invente fatos, cargos, partidos ou notícias recentes. "
+            "Se não souber algo em tempo real, diga: 'Como sou uma IA local, não tenho acesso à internet em tempo real para ver as informações mais recentes. Mas se você colar o texto aqui, eu analiso para você.' "
             "Use o contexto fornecido pelo usuário como a única fonte de verdade sobre a vida dele. "
         )
         context = (
@@ -159,9 +158,8 @@ class Personality:
         if re.search(r"\b(obrigad[oa]|valeu|brigad[oa])\b", user_text.lower()):
             return random.choice(THANKS_REPLIES)
 
-        hello = PERIOD_HELLO.get(mood.time_of_day, "Olá")
         name = f", {user_name}" if user_name else ""
-        lines = [f"{hello}{name}! {hello} para você também!"]
+        lines = [f"Olá{name}!"]
         day_note = DAY_NOTE.get(mood.day_of_week)
         if day_note:
             lines.append(day_note)
