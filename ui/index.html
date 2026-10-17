@@ -110,6 +110,8 @@
       <button type="button" id="attachRemoveBtn" aria-label="Remover anexo" title="Remover anexo">&#10005;</button>
     </div>
 
+    <div class="chat__input-wrapper">
+      <button type="button" class="btn-cancel" id="cancelBtn" hidden title="Parar resposta" aria-label="Parar resposta">✕</button>
     <form class="chat__input" id="chatForm" autocomplete="off">
       <input
         type="text"
@@ -136,6 +138,8 @@
         </svg>
       </button>
     </form>
+      <div class="chat__typing" id="typingIndicator" hidden aria-live="polite">Escrevendo...</div>
+    </div>
 
     <aside class="history-panel" id="historyPanel" hidden>
       <div class="history-panel__head">
