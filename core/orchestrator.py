@@ -386,10 +386,9 @@ class MarcellyOrchestrator:
                     lines.append(f"  \U0001f4ac _Rascunho:_ {s.draft_reply[:140]}...")
             return "\n".join(lines)
 
-        if "resumo" in user_input.lower() or "brief" in user_input.lower():
-            body, error = with_email_alternatives(self.email, self.email.daily_brief)
-        else:
-            body, error = with_email_alternatives(self.email, _listar_emails)
+        body, error = with_email_alternatives(
+            self.email, lambda: self.email.handle_request(user_input)
+        )
         if error:
             return error
         return self._wrap_with_personality(body, mood_ctx, topic="email")
