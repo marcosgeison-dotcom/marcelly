@@ -14,6 +14,7 @@ from config import CONFIG
 from core.agents import AgentRegistry
 from core.debug import DEBUG
 from core.intent_router import IntentRouter
+from core.knowledge_guardrails import safe_current_affairs_reply
 from core.memory import Memory
 from core.mood_detector import MoodDetector
 from core.ollama_client import OllamaClient
@@ -177,6 +178,21 @@ class MarcellyOrchestrator:
         PERF.start("roteamento")
         mood_ctx = self.mood.detect(user_input)
         DEBUG.log("mood", mood=mood_ctx.mood, time_of_day=mood_ctx.time_of_day)
+
+        safeguarded = safe_current_affairs_reply(user_input)
+        if safeguarded:
+            PERF.finish()
+            self._remember_async(user_input, "knowledge_safety", mood_ctx.mood, safeguarded)
+            return {
+                "text": safeguarded,
+                "meta": {
+                    "intent": "knowledge_safety",
+                    "confidence": 1.0,
+                    "mood": mood_ctx.mood,
+                    "time_of_day": mood_ctx.time_of_day,
+                    "day_of_week": mood_ctx.day_of_week,
+                },
+            }
         _emit(emit, type="status", value="🔎 Analisando o pedido...")
         routing = self.router.route(user_input)
         DEBUG.log(
