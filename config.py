@@ -4,9 +4,12 @@ Nenhum dado é enviado para servidores externos por padrão.
 """
 import os
 import sys
+from dotenv import load_dotenv
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
+
+load_dotenv()
 
 
 def _persistent_data_dir() -> Path:
