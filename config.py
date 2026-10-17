@@ -65,7 +65,7 @@ class OllamaConfig:
     host: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
     model: str = os.getenv("MARCELY_MODEL", _AUTO_MODEL)
     decision_model: str = os.getenv("MARCELY_DECISION_MODEL", _AUTO_MODEL)
-    temperature: float = 0.3
+    temperature: float = 0.2
     # Limite de threads por resposta: em maquinas modestas o llama-server
     # toma quase metade da CPU e congela tudo. Padrao: 2 a 4 threads.
     num_thread: int = int(os.getenv("MARCELY_NUM_THREADS", "0")) or max(2, min(4, (os.cpu_count() or 4) // 2))
