@@ -61,6 +61,7 @@ SETUP_GUIDE = (
 class EmailSummary:
     subject: str
     sender: str
+    to: str = ""
     category: str      # "urgent" | "needs_reply" | "fyi"
     summary: str
     draft_reply: Optional[str] = None
@@ -229,16 +230,18 @@ class EmailModule:
                 decoded.append(part)
         return "".join(decoded)
 
-    def fetch_and_classify(self, limit: int = 20) -> list[EmailSummary]:
-        """Busca e-mails recentes e classifica a caixa inteira em UMA chamada
-        do modelo (em lote) — em vez de uma chamada por e-mail, que levava
-        minutos em maquinas modestas."""
+    def fetch_parsed(self, limit: int = 20, only_unseen: bool = True) -> list[dict]:
+        """Busca e-mails recentes já decodificados (assunto, remetente,
+        destinatário e corpo). Por padrão só os não lidos; com
+        only_unseen=False, os últimos da caixa (lidos ou não)."""
         with self._connect() as client:
             client.select_folder("INBOX", readonly=True)
-            uids = client.search(["UNSEEN"])[-limit:]
+            if only_unseen:
+                uids = client.search(["UNSEEN"])[-limit:]
+            else:
+                uids = client.search(["ALL"])[-limit:]
             if not uids:
                 return []
-
             messages = client.fetch(uids, ["RFC822"])
             parsed = []
             for uid, data in messages.items():
@@ -247,9 +250,19 @@ class EmailModule:
                     {
                         "subject": self._decode(msg.get("Subject", "")),
                         "sender": self._decode(msg.get("From", "")),
+                        "to": self._decode(msg.get("To", "")),
                         "body": self._extract_body(msg),
                     }
                 )
+        return parsed
+
+    def fetch_and_classify(self, limit: int = 20, only_unseen: bool = True) -> list[EmailSummary]:
+        """Busca e-mails recentes e classifica a caixa inteira em UMA chamada
+        do modelo (em lote) — em vez de uma chamada por e-mail, que levava
+        minutos em maquinas modestas."""
+        parsed = self.fetch_parsed(limit=limit, only_unseen=only_unseen)
+        if not parsed:
+            return []
         classified = self._classify_batch(parsed)
         summaries: list[EmailSummary] = []
         for item, info in zip(parsed, classified):
@@ -257,6 +270,7 @@ class EmailModule:
                 EmailSummary(
                     subject=item["subject"],
                     sender=item["sender"],
+                    to=item.get("to", ""),
                     category=info.get("category", "fyi"),
                     summary=info.get("summary") or item["subject"],
                     draft_reply=info.get("draft_reply"),
@@ -264,8 +278,9 @@ class EmailModule:
             )
         return summaries
 
-    def _classify_batch(self, items: list[dict]) -> list[dict]:
+    def _classify_batch(self, items: list[dict], force_draft: bool = False) -> list[dict]:
         """Classifica todos os e-mails de uma vez, numa única chamada local."""
+        # force_draft: pede rascunho para TODOS (ex.: "elabore respostas")
         if not items:
             return []
         listing = "\n\n".join(
@@ -276,7 +291,7 @@ class EmailModule:
             'Você é um assistente de e-mail. Recebe uma lista de e-mails numerados '
             'e retorna APENAS JSON no formato: '
             '{"emails": [{"index": 0, "category": "urgent"|"needs_reply"|"fyi", '
-            '"summary": "resumo em uma frase", "draft_reply": "rascunho curto de 2 linhas ou null"}]}. '
+            '"summary": "resumo em uma frase", ' + draft_rule + '}. '
             'Um item por e-mail, na mesma ordem da lista. Resumos e rascunhos bem curtos.'
         )
         prompt = f"E-mails:\n\n{listing}"
@@ -333,4 +348,80 @@ class EmailModule:
         for s in urgent + replies:
             lines.append(f"• [{s.category}] {s.sender}: {s.subject}")
             lines.append(f"  {s.summary}")
+        return "\n".join(lines)
+
+    # ---- Pedido interpretado (não despeja a caixa) --------------------------
+    def _parse_request(self, user_input: str) -> dict:
+        """Entende o pedido: quantos e-mails, filtro e o que fazer."""
+        system = (
+            "Você interpreta pedidos sobre uma caixa de e-mail e retorna APENAS JSON: "
+            '{"action": "list"|"brief"|"draft", "count": <inteiro ou null>, '
+            '"search": "<termo em minúsculas para filtrar remetente, destinatário ou assunto, ou null>"}. '
+            '"list" = relacionar/mostrar e-mails; "brief" = resumo geral do dia; '
+            '"draft" = relacionar E elaborar respostas para cada um. '
+            'Se o usuário pedir respostas/rascunhos, use "draft". '
+            'Se citar uma pessoa ou palavra para filtrar (ex.: "e-mails para Marcos Geison"), '
+            'coloque em "search".'
+        )
+        raw = self.llm.chat(user_input, system=system, format_json=True)
+        return json.loads(raw)
+
+    def handle_request(self, user_input: str) -> str:
+        """Executa o pedido de e-mail conforme o que o usuário pediu —
+        quantos e-mails, filtro de remetente/destinatário/assunto e ação
+        (listar, resumo do dia ou elaborar respostas) — em vez de sempre
+        despejar os últimos e-mails da caixa."""
+        try:
+            parsed = self._parse_request(user_input)
+        except Exception:
+            parsed = {}
+        if not isinstance(parsed, dict):
+            parsed = {}
+
+        action = parsed.get("action") if parsed.get("action") in ("list", "brief", "draft") else "list"
+        if action == "brief":
+            return self.daily_brief()
+
+        count = parsed.get("count")
+        count = count if isinstance(count, int) and count > 0 else None
+        search = str(parsed.get("search") or "").strip().lower()
+
+        # Busca com folga para o filtro: 4x o pedido, no máximo 50
+        limit = min(max((count or 10) * 4, 12), 50)
+        parsed_emails = self.fetch_parsed(limit=limit, only_unseen=False)
+        if search:
+            term = search
+
+            def _match(it):
+                hay = f"{it['sender']} {it.get('to', '')} {it['subject']}".lower()
+                return term in hay
+
+            filtered = [it for it in parsed_emails if _match(it)]
+            if not filtered:
+                return (
+                    f"📭 Não encontrei e-mails para **“{search}”** nos últimos "
+                    f"{len(parsed_emails)} da caixa.\n\n"
+                    "Quer que eu amplie a busca ou procure por outro termo?"
+                )
+        else:
+            filtered = parsed_emails
+        if count:
+            filtered = filtered[:count]
+        if not filtered:
+            return "📭 Sua caixa de entrada está em dia — nenhum e-mail para mostrar."
+
+        force_draft = action == "draft"
+        classified = self._classify_batch(filtered, force_draft=force_draft)
+        lines = [
+            f"📬 **{len(filtered)} e-mail(s)**" + (f" para “{search}”:" if search else ":"),
+            "",
+        ]
+        for it, info in zip(filtered, classified):
+            lines.append(f"• **[{info.get('category', 'fyi')}]** {it['sender']}: {it['subject']}")
+            lines.append(f"  {info.get('summary') or it['subject']}")
+            if force_draft and info.get("draft_reply"):
+                lines.append(f"  ✉️ **Rascunho de resposta:** {info['draft_reply']}")
+        if force_draft:
+            lines.append("")
+            lines.append("_Revise antes de enviar — são sugestões e nada é enviado sem você pedir._")
         return "\n".join(lines)
