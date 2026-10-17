@@ -44,6 +44,26 @@
     if (attachBtn) attachBtn.disabled = value;
   }
 
+  const IMPORTANT_INTENTS = new Set(['email', 'decision', 'guidance', 'agents', 'skills']);
+
+  function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }
+
+  function notifyImportantResponse(data) {
+    const intent = data.meta && data.meta.intent;
+    if (!IMPORTANT_INTENTS.has(intent) || document.hasFocus() || !('Notification' in window)) return;
+    if (Notification.permission === 'granted') {
+      new Notification('Marcelly', {
+        body: 'Sua resposta importante está pronta.',
+        tag: 'marcelly-important-response',
+      });
+    }
+  }
+
+
   // ---------- Streaming + agentes em ação ----------
   let streamWrap = null;
   let streamBubble = null;
@@ -90,20 +110,27 @@
   }
 
   function finishResponse(data = {}) {
-    try {
-      if (data.type === 'message') {
-        if (streamBubble) {
-          streamBubble.innerHTML = formatText(data.text || streamBuf) + timeHtml();
-        } else if (data.text) {
-          addMessage('bot', data.text);
-        }
-        if (data.meta && data.meta.mood) updateMood(data.meta.mood);
+    if (data.type === 'message') {
+      hideStatus();
+      if (streamBubble) {
+        streamBubble.innerHTML = formatText(data.text || streamBuf) + timeHtml();
+      } else if (data.text) {
+        addMessage('bot', data.text);
       }
-    } finally {
-      clearLoading();
+      if (data.meta && data.meta.mood) updateMood(data.meta.mood);
+      notifyImportantResponse(data);
     }
+    if (typingIndicator) {
+      typingIndicator.hidden = true;
+      typingIndicator.style.display = 'none';
+    }
+    if (cancelBtn) {
+      cancelBtn.hidden = true;
+      cancelBtn.style.display = 'none';
+    }
+    setBusy(false);
+    resetStream();
   }
-
 
   ws.addEventListener('message', (ev) => {
     const data = JSON.parse(ev.data);
@@ -169,6 +196,7 @@
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (busy) return;
+    requestNotificationPermission();
     const text = input.value.trim();
     if (!text && !attachedFile) return;
 
