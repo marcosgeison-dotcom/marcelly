@@ -309,7 +309,8 @@ class MarcellyOrchestrator:
 
     def _handle_chat(self, user_input: str, mood_ctx, emit=None) -> str:
         system = self.personality.build_system_prompt(
-            mood_ctx, user_name=self.memory.profile.get("name", "")
+            mood_ctx, user_name=self.memory.profile.get("name", ""),
+            profile=self.memory.profile,
         )
         # No modo rapido, corta o contexto de memoria: o prompt processa mais rapido
         context = "" if PERF.is_accelerated() else self.memory.build_context()
