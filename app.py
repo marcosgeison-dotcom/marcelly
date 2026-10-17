@@ -51,6 +51,21 @@ async def update_autostart(enabled: bool = Body(..., embed=True)):
     return {"enabled": get_autostart() if ok else enabled, "ok": ok}
 
 
+@app.get("/api/profile")
+async def profile_get():
+    """Dados informados na instalação (salvos apenas neste computador)."""
+    memory = orchestrator.memory
+    return {key: memory.profile.get(key, "") for key in memory.PROFILE_FIELDS}
+
+
+@app.post("/api/profile")
+async def profile_update(fields: dict = Body(...)):
+    """Salva/atualiza nome, gênero, telefone, WhatsApp e e-mail do usuário."""
+    memory = orchestrator.memory
+    memory.update_profile(fields)
+    return {key: memory.profile.get(key, "") for key in memory.PROFILE_FIELDS}
+
+
 @app.get("/api/debug")
 async def debug_state():
     return {"enabled": DEBUG.enabled, "events": DEBUG.recent(100)}
@@ -67,6 +82,7 @@ async def memory_overview():
     memory = orchestrator.memory
     return {
         "name": memory.profile.get("name", ""),
+        "profile": {key: memory.profile.get(key, "") for key in memory.PROFILE_FIELDS},
         "facts": [{"key": f.key, "value": f.value} for f in memory.get_facts()],
         "preferences": memory.get_all_preferences(),
         "patterns": memory.get_patterns(),
