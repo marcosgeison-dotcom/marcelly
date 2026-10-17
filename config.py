@@ -86,12 +86,21 @@ class EmailConfig:
 
 
 @dataclass
+class CloudConfig:
+    """Fallback opcional para perguntas complexas."""
+    api_key: Optional[str] = os.getenv("DEEPSEEK_API_KEY")
+    model: str = os.getenv("MARCELY_CLOUD_MODEL", "deepseek-v4-pro")
+    ram_threshold: float = float(os.getenv("MARCELY_CLOUD_RAM_THRESHOLD", "85"))
+
+
+@dataclass
 class MarcellyConfig:
     ollama: OllamaConfig = field(default_factory=OllamaConfig)
     email: EmailConfig = field(default_factory=EmailConfig)
+    cloud: CloudConfig = field(default_factory=CloudConfig)
     log_level: str = os.getenv("MARCELY_LOG", "INFO")
     confirm_sensitive_actions: bool = True
-    local_only: bool = True  # garante que nenhuma chamada externa seja feita
+    local_only: bool = False  # perguntas complexas podem usar a DeepSeek se a chave estiver configurada
 
 
 CONFIG = MarcellyConfig()
