@@ -61,9 +61,9 @@ SETUP_GUIDE = (
 class EmailSummary:
     subject: str
     sender: str
-    to: str = ""
     category: str      # "urgent" | "needs_reply" | "fyi"
-    summary: str
+    to: str = ""
+    summary: str = ""
     draft_reply: Optional[str] = None
 
 
