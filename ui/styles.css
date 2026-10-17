@@ -818,3 +818,80 @@ html, body {
 }
 .memory-panel__forget:hover { color: #ff8095; }
 .memory-panel__empty { color: var(--text-muted); font-size: 0.8rem; }
+\n
+/* ---------- Boas-vindas (perfil na instalação) ---------- */
+.onboarding {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 8, 14, 0.78);
+  padding: 16px;
+}
+.onboarding[hidden] { display: none; }
+.onboarding__card {
+  width: min(420px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px 22px 18px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
+}
+.onboarding__card h2 { margin: 0 0 6px; font-size: 1.1rem; color: var(--text); }
+.onboarding__card p { margin: 0 0 14px; font-size: 0.8rem; color: var(--text-muted); }
+.onboarding__form { display: flex; flex-direction: column; gap: 10px; }
+.onboarding__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.onboarding__field input,
+.onboarding__field select {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+}
+.onboarding__field input:focus,
+.onboarding__field select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.onboarding__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+}
+.onboarding__save {
+  background: var(--accent);
+  border: none;
+  border-radius: 999px;
+  color: #04121a;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 8px 18px;
+  cursor: pointer;
+  transition: opacity 200ms;
+}
+.onboarding__save:hover { opacity: 0.9; }
+.onboarding__save:disabled { opacity: 0.6; cursor: wait; }
+.onboarding__skip {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
