@@ -272,6 +272,7 @@
           '<li><span>' + memEscape(p) + '</span></li>'
         ).join('') + '</ul>');
       }
+      parts.push('<div class="memory-panel__actions"><button type="button" data-memory-action="export">Exportar backup</button><button type="button" class="memory-panel__danger" data-memory-action="reset">Esquecer tudo</button></div>');
       memoryList.innerHTML = parts.join('') || '<p class="memory-panel__empty">Ainda não aprendi nada sobre você. Converse comigo!</p>';
     } catch (err) {
       memoryList.innerHTML = '<p class="memory-panel__empty">Não consegui carregar agora.</p>';
@@ -310,6 +311,26 @@
       } catch (err) {
         button.disabled = false;
         button.textContent = 'Tentar novamente';
+      }
+    });
+  }
+
+  if (memoryList) {
+    memoryList.addEventListener('click', async (e) => {
+      const action = e.target.closest('[data-memory-action]');
+      if (!action) return;
+      if (action.dataset.memoryAction === 'export') {
+        const backup = await fetch('/api/memory/export').then((r) => r.json());
+        const url = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'marcelly-backup.json';
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+      if (action.dataset.memoryAction === 'reset' && confirm('Apagar permanentemente perfil, fatos e histórico desta instalação?')) {
+        await fetch('/api/memory/reset', { method: 'POST' });
+        await openMemoryPanel();
       }
     });
   }
