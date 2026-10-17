@@ -20,8 +20,8 @@ def safe_current_affairs_reply(user_input: str) -> str | None:
         )
     if CURRENT_AFFAIRS.search(user_input):
         return (
-            "Não tenho acesso a pesquisas, candidaturas ou resultados eleitorais em tempo real. "
-            "Para não fornecer informação política incorreta, não vou afirmar quem lidera uma corrida. "
-            "Consulte uma fonte atualizada e confiável, como o TSE ou institutos de pesquisa reconhecidos."
+            "Como sou uma IA local, não tenho acesso à internet em tempo real para consultar pesquisas, candidaturas ou resultados eleitorais. "
+            "Para não arriscar uma informação incorreta, não vou afirmar quem está à frente. "
+            "Se você colar aqui o texto de uma pesquisa, eu analiso para você."
         )
     return None
