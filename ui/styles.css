@@ -895,3 +895,12 @@ html, body {
   cursor: pointer;
   text-decoration: underline;
 }
+
+/* ---------- Perfil editável ---------- */
+.memory-panel__profile-form { display: grid; gap: 10px; }
+.memory-panel__profile-form label { display: grid; gap: 5px; color: var(--text-muted); font-size: .78rem; }
+.memory-panel__profile-form input, .memory-panel__profile-form select { width: 100%; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); color: var(--text); padding: 9px 10px; font: inherit; }
+.memory-panel__profile-form input:focus, .memory-panel__profile-form select:focus { outline: 2px solid rgba(0,229,255,.35); border-color: var(--accent); }
+.memory-panel__profile-form button { justify-self: start; border: 1px solid var(--accent); border-radius: 999px; background: rgba(0,229,255,.1); color: var(--accent); padding: 8px 13px; font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; }
+.memory-panel__profile-form button:hover { background: rgba(0,229,255,.18); }
+.memory-panel__profile-form button:disabled { opacity: .55; cursor: wait; }
