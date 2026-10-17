@@ -54,7 +54,7 @@ _TOTAL_RAM_GB = _total_ram_gb()
 # Maquinas com pouca RAM: modelo de 1 bilhao de parametros (~1 GB na memoria)
 # em vez do de 3 bi (~2 GB). Dois modelos grandes + pouca RAM fazem o Windows
 # "abafar" no disco e o computador travar — o modelo leve evita isso.
-_AUTO_MODEL = "llama3.2:1b" if _TOTAL_RAM_GB < 8 else "llama3.2:3b"
+_AUTO_MODEL = "llama3.2:1b" if _TOTAL_RAM_GB <= 8 else "llama3.2:3b"
 
 
 @dataclass
