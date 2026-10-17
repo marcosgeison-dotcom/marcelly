@@ -325,6 +325,7 @@ async def websocket_endpoint(ws: WebSocket):
             await _log_and_send_debug(ws, started, response)
             await ws.send_json({"type": "typing", "value": False})
             await ws.send_json({"type": "message", **response})
+            await ws.send_json({"type": "done"})
     except WebSocketDisconnect:
         return
 
