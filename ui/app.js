@@ -3,6 +3,8 @@
   const form = document.getElementById('chatForm');
   const input = document.getElementById('messageInput');
   const sendBtn = document.getElementById('sendBtn');
+  const typingIndicator = document.getElementById('typingIndicator');
+  const cancelBtn = document.getElementById('cancelBtn');
   const micBtn = document.getElementById('micBtn');
   const attachBtn = document.getElementById('attachBtn');
   const fileInput = document.getElementById('fileInput');
@@ -72,64 +74,71 @@
     return { wrap, bubble };
   }
 
+  function finishResponse(data = {}) {
+    if (data.type === 'message') {
+      hideStatus();
+      if (streamBubble) {
+        streamBubble.innerHTML = formatText(data.text || streamBuf) + timeHtml();
+      } else if (data.text) {
+        addMessage('bot', data.text);
+      }
+      if (data.meta && data.meta.mood) updateMood(data.meta.mood);
+    }
+    if (typingIndicator) typingIndicator.hidden = true;
+    if (cancelBtn) cancelBtn.hidden = true;
+    setBusy(false);
+    resetStream();
+  }
+
   ws.addEventListener('message', (ev) => {
     const data = JSON.parse(ev.data);
     if (data.type === 'typing') {
-      if (!data.value) { setBusy(false); hideStatus(); }
-      return;
-    }
-    if (data.type === 'status') {
-      if (statusChip) {
-        statusText.textContent = data.value || '';
-        statusChip.hidden = !data.value;
-      }
-      return;
-    }
-    if (data.type === 'token') {
-      hideStatus();
-      if (!streamWrap) {
+      if (typingIndicator) typingIndicator.hidden = !data.value;
+      if (cancelBtn) cancelBtn.hidden = !data.value;
+      if (data.value && !streamWrap) {
         const m = createStreamingMessage();
         streamWrap = m.wrap;
         streamBubble = m.bubble;
       }
-      streamBuf += data.token || '';
+      return;
+    }
+    if (data.type === 'status') {
+      if (statusChip) { statusText.textContent = data.value || ''; statusChip.hidden = !data.value; }
+      return;
+    }
+    if (data.type === 'token' || data.type === 'chunk') {
+      hideStatus();
+      if (!streamWrap) { const m = createStreamingMessage(); streamWrap = m.wrap; streamBubble = m.bubble; }
+      streamBuf += data.token || data.value || data.text || '';
       streamBubble.innerHTML = formatText(streamBuf) + '<span class="stream-cursor">▌</span>';
       chatBody.scrollTop = chatBody.scrollHeight;
       return;
     }
     if (data.type === 'transcribing') {
-      if (statusChip) {
-        statusText.textContent = 'Transcrevendo áudio…';
-        statusChip.hidden = !data.value;
-      }
+      if (statusChip) { statusText.textContent = 'Transcrevendo áudio…'; statusChip.hidden = !data.value; }
       micBtn.disabled = data.value;
       return;
     }
-    if (data.type === 'transcript') {
-      addMessage('user', data.text);
-      return;
-    }
-    if (data.type === 'debug') {
-      addDebugEvent(data.event);
-      return;
-    }
-    if (data.type === 'message') {
-      hideStatus();
-      if (streamBubble) {
-        streamBubble.innerHTML = formatText(data.text) + timeHtml();
-      } else {
-        addMessage('bot', data.text);
-      }
-      resetStream();
-      if (data.meta && data.meta.mood) updateMood(data.meta.mood);
-      setBusy(false);
-    }
+    if (data.type === 'transcript') { addMessage('user', data.text); return; }
+    if (data.type === 'debug') { addDebugEvent(data.event); return; }
+    if (data.type === 'message' || data.type === 'done') finishResponse(data);
   });
 
   ws.addEventListener('close', () => {
     hideStatus();
     addMessage('bot', '\u26a0\ufe0f Conex\u00e3o encerrada. Recarregue a p\u00e1gina para reconectar.');
   });
+
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => {
+      if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'cancel' }));
+      hideStatus();
+      if (typingIndicator) typingIndicator.hidden = true;
+      cancelBtn.hidden = true;
+      setBusy(false);
+      resetStream();
+    });
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -405,6 +414,7 @@
       .replace(/>/g, '&gt;')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
       .replace(/^[\u2022\-]\s(.+)$/gm, '<li>$1</li>')
       .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
       .replace(/\n/g, '<br>');
@@ -413,11 +423,13 @@
 
   function updateMood(mood) {
     const map = {
-      happy: '\U0001f60a', tired: '\U0001f634', stressed: '\U0001f630',
-      excited: '\U0001f929', neutral: '\U0001f642', sad: '\U0001f614',
+      happy: { emoji: '😊', label: 'feliz' }, tired: { emoji: '😴', label: 'cansado' },
+      stressed: { emoji: '😰', label: 'estressado' }, excited: { emoji: '🤩', label: 'animado' },
+      neutral: { emoji: '🙂', label: 'neutro' }, sad: { emoji: '😔', label: 'triste' },
     };
-    moodEmoji.textContent = map[mood] || '\U0001f642';
-    moodLabel.textContent = mood;
+    const translated = map[mood] || map.neutral;
+    moodEmoji.textContent = translated.emoji;
+    moodLabel.textContent = translated.label;
   }
 
   // ---------- Modo de depuração ----------
