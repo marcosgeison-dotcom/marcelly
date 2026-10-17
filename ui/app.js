@@ -115,7 +115,9 @@
       return;
     }
     if (data.type === 'status') {
-      if (statusChip) { statusText.textContent = data.value || ''; statusChip.hidden = !data.value; }
+      const status = data.value || data.text || '';
+      if (statusChip) { statusText.textContent = status; statusChip.hidden = !status; }
+      if (typingIndicator && status) typingIndicator.textContent = status;
       return;
     }
     if (data.type === 'token' || data.type === 'chunk') {
