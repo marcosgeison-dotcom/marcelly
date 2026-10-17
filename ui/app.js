@@ -244,17 +244,17 @@
         parts.push('<h3>Seu nome</h3><ul class="memory-panel__items"><li><span>' + memEscape(data.name) + '</span></li></ul>');
       }
       if (data.profile) {
-        const rows = [
-          ['Gênero', data.profile.gender],
-          ['Telefone', data.profile.phone],
-          ['WhatsApp', data.profile.whatsapp],
-          ['E-mail', data.profile.email],
-        ].filter((row) => row[1]);
-        if (rows.length) {
-          parts.push('<h3>Seu perfil</h3><ul class="memory-panel__items">' + rows.map((row) =>
-            '<li><span><strong>' + memEscape(row[0]) + '</strong> ' + memEscape(row[1]) + '</span></li>'
-          ).join('') + '</ul>');
-        }
+        parts.push('<h3>Seu perfil</h3>' +
+          '<form class="memory-panel__profile-form" id="profileForm">' +
+          '<label>Nome<input name="name" value="' + memEscape(data.profile.name || '') + '" autocomplete="name"></label>' +
+          '<label>Gênero<select name="gender">' +
+          '<option value="">Prefiro não informar</option>' +
+          ['masculino', 'feminino', 'outro'].map((value) => '<option value="' + value + '"' + (data.profile.gender === value ? ' selected' : '') + '>' + value[0].toUpperCase() + value.slice(1) + '</option>').join('') +
+          '</select></label>' +
+          '<label>Telefone<input name="phone" value="' + memEscape(data.profile.phone || '') + '" autocomplete="tel"></label>' +
+          '<label>WhatsApp<input name="whatsapp" value="' + memEscape(data.profile.whatsapp || '') + '"></label>' +
+          '<label>E-mail<input name="email" type="email" value="' + memEscape(data.profile.email || '') + '" autocomplete="email"></label>' +
+          '<button type="submit">Salvar perfil</button></form>');
       }
       if (data.facts && data.facts.length) {
         parts.push('<h3>Fatos que aprendi</h3><ul class="memory-panel__items">' + data.facts.map((f) =>
@@ -295,6 +295,22 @@
         body: JSON.stringify({ key: btn.dataset.key }),
       });
       openMemoryPanel();
+    });
+    memoryList.addEventListener('submit', async (e) => {
+      if (!e.target.matches('.memory-panel__profile-form')) return;
+      e.preventDefault();
+      const form = e.target;
+      const button = form.querySelector('button');
+      button.disabled = true;
+      button.textContent = 'Salvando…';
+      try {
+        const fields = Object.fromEntries(new FormData(form).entries());
+        await fetch('/api/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fields) });
+        await openMemoryPanel();
+      } catch (err) {
+        button.disabled = false;
+        button.textContent = 'Tentar novamente';
+      }
     });
   }
 
