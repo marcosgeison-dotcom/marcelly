@@ -69,7 +69,9 @@ class Personality:
     def __init__(self):
         self._jokes_told = 0
 
-    def build_system_prompt(self, mood: MoodContext, user_name: str = "") -> str:
+    def build_system_prompt(
+        self, mood: MoodContext, user_name: str = "", profile: dict | None = None
+    ) -> str:
         rule = HUMOR_RULES.get(
             (mood.mood, mood.time_of_day),
             "Tom neutro, profissional e amigável."
@@ -88,8 +90,33 @@ class Personality:
             f"'{mood.time_of_day}', dia '{mood.day_of_week}'. "
             f"Diretriz de tom: {rule} {day_rule}"
         )
+        profile = profile or {}
+        if not user_name:
+            user_name = profile.get("name", "")
         if user_name:
             context += f"\nO usuário se chama {user_name}."
+        gender = str(profile.get("gender") or "").strip().lower()
+        if gender:
+            context += (
+                f"\nGênero do usuário: {gender}. Use a concordância de gênero "
+                "correta ao se dirigir a ele (ex.: 'querido'/'querida'). "
+                "Prefira chamá-lo pelo nome."
+            )
+        else:
+            context += (
+                "\nGênero do usuário: desconhecido. NÃO presuma o gênero: "
+                "prefira chamá-lo pelo nome e evite termos com concordância "
+                "de gênero ('querido', 'querida', 'meu bem')."
+            )
+        contacts = []
+        if profile.get("email"):
+            contacts.append(f"e-mail: {profile['email']}")
+        if profile.get("phone"):
+            contacts.append(f"telefone: {profile['phone']}")
+        if profile.get("whatsapp"):
+            contacts.append(f"WhatsApp: {profile['whatsapp']}")
+        if contacts:
+            context += "\nContatos do usuário: " + "; ".join(contacts) + "."
 
         return base + context
 
