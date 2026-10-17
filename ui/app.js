@@ -243,6 +243,19 @@
       if (data.name) {
         parts.push('<h3>Seu nome</h3><ul class="memory-panel__items"><li><span>' + memEscape(data.name) + '</span></li></ul>');
       }
+      if (data.profile) {
+        const rows = [
+          ['Gênero', data.profile.gender],
+          ['Telefone', data.profile.phone],
+          ['WhatsApp', data.profile.whatsapp],
+          ['E-mail', data.profile.email],
+        ].filter((row) => row[1]);
+        if (rows.length) {
+          parts.push('<h3>Seu perfil</h3><ul class="memory-panel__items">' + rows.map((row) =>
+            '<li><span><strong>' + memEscape(row[0]) + '</strong> ' + memEscape(row[1]) + '</span></li>'
+          ).join('') + '</ul>');
+        }
+      }
       if (data.facts && data.facts.length) {
         parts.push('<h3>Fatos que aprendi</h3><ul class="memory-panel__items">' + data.facts.map((f) =>
           '<li><span><strong>' + memEscape(f.key) + '</strong> ' + memEscape(f.value) + '</span>' +
@@ -681,6 +694,65 @@
   }
   refreshStats();
   setInterval(refreshStats, 2000);
+
+  // ---------- Boas-vindas: perfil do usuário (salvo só neste computador) ----------
+  const onboarding = document.getElementById('onboarding');
+  const onboardingForm = document.getElementById('onboardingForm');
+  const onboardingSkip = document.getElementById('onboardingSkip');
+  const onboardingSave = document.getElementById('onboardingSave');
+
+  function closeOnboarding() {
+    if (onboarding) onboarding.hidden = true;
+  }
+
+  function openOnboarding() {
+    if (!onboarding) return;
+    onboarding.hidden = false;
+    const nameField = document.getElementById('obName');
+    if (nameField) nameField.focus();
+  }
+
+  if (onboarding && onboardingForm) {
+    let dismissed = false;
+    try { dismissed = localStorage.getItem('marcelly_onboarding') === 'done'; } catch (e) { /* sem localStorage */ }
+    fetch('/api/profile')
+      .then((r) => r.json())
+      .then((profile) => {
+        if (profile && profile.name) return; // já preenchido: não pergunta de novo
+        if (dismissed) return; // usuário optou por preencher depois
+        openOnboarding();
+      })
+      .catch(() => { /* servidor ainda aquecendo: tenta no próximo uso */ });
+
+    onboardingForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (onboardingSave) onboardingSave.disabled = true;
+      const fields = {
+        name: (document.getElementById('obName') || {}).value || '',
+        gender: (document.getElementById('obGender') || {}).value || '',
+        phone: (document.getElementById('obPhone') || {}).value || '',
+        whatsapp: (document.getElementById('obWhats') || {}).value || '',
+        email: (document.getElementById('obEmail') || {}).value || '',
+      };
+      try {
+        await fetch('/api/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(fields),
+        });
+        try { localStorage.setItem('marcelly_onboarding', 'done'); } catch (e) { /* sem localStorage */ }
+        closeOnboarding();
+        addMessage('bot', 'Olá! Anotado — vou te tratar pelo nome, do jeito certo. Tudo salvo apenas neste computador. 🙌');
+      } catch (err) {
+        if (onboardingSave) onboardingSave.disabled = false;
+      }
+    });
+
+    onboardingSkip.addEventListener('click', () => {
+      try { localStorage.setItem('marcelly_onboarding', 'done'); } catch (e) { /* sem localStorage */ }
+      closeOnboarding();
+    });
+  }
 
   input.focus();
 })();
