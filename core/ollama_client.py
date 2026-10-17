@@ -94,7 +94,7 @@ class OllamaClient:
             "'confidence' (0.0 a 1.0), "
             "'reasoning' (explicação curta em português). "
             "Use 'agents' para lembretes, planos e rotinas; 'skills' para resumos, busca no historico, memoria, habitos e catalogo de habilidades. Use 'chat' para conversa casual, saudações, agradecimentos ou "
-            "perguntas gerais que não caibam nas outras frentes. "
+            "perguntas gerais que não caibam nas outras frentes. Se a mensagem é uma PERGUNTA sobre o que a Marcelly faz ou pode fazer (ex.: 'você consegue redigir e-mails?'), classifique como 'chat' — a resposta sai da conversa, não da ação. "
             "Não gere texto fora do JSON."
         )
         raw = self.chat(user_input, system=system, format_json=True)
