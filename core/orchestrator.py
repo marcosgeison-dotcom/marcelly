@@ -223,7 +223,7 @@ class MarcellyOrchestrator:
 
         if routing.intent == "email":
             _emit(emit, type="status", value="📧 Agente de E-mail abrindo sua caixa de entrada...")
-            text = self._handle_email(user_input, mood_ctx)
+            text = self._handle_email(user_input, mood_ctx, emit)
         elif routing.intent == "decision":
             _emit(emit, type="status", value="⚖️ Analisando as opções da decisão...")
             text = self._handle_decision(user_input, mood_ctx)
@@ -340,10 +340,41 @@ class MarcellyOrchestrator:
         body = self.skills.dispatch(user_input)
         return self._wrap_with_personality(body, mood_ctx, topic="skills")
 
-    def _handle_email(self, user_input: str, mood_ctx) -> str:
+    def _is_email_question(self, user_input: str) -> bool:
+        """Perguntas sobre o que a Marcelly faz com e-mail merecem resposta direta."""
+        low = user_input.lower()
+        if "?" not in low:
+            return False
+        hints = (
+            "consegue", "você pode", "voce pode", "pode fazer", "o que você",
+            "o que voce", "sabe fazer", "como funciona", "como você", "como voce",
+            "redigir", "escrever resposta", "responder e-mail", "responde e-mail",
+        )
+        return any(h in low for h in hints)
+
+    def _handle_email(self, user_input: str, mood_ctx, emit=None) -> str:
         setup = self._handle_email_setup(user_input)
         if setup is not None:
             return setup
+
+        # Pergunta sobre capacidades: responde a pergunta diretamente,
+        # em vez de despejar a caixa de entrada.
+        if self._is_email_question(user_input):
+            system = (
+                "Você é a Marcelly, uma assistente local. O usuário fez uma pergunta "
+                "sobre o que você faz com e-mails. Responda APENAS a pergunta dele, "
+                "de forma direta, curta e em português. Suas capacidades com e-mail: "
+                "ler e resumir a caixa de entrada, classificar por categoria, gerar "
+                "resumo do dia e redigir rascunhos de resposta. NÃO liste e-mails "
+                "agora. Termine oferecendo agir (ex.: 'quer que eu resuma agora?')."
+            )
+            _emit(emit, type="status", value="✍️ Respondendo à sua pergunta...")
+            pieces = []
+            for piece in self.chat.reply_stream(user_input, system):
+                pieces.append(piece)
+                _emit(emit, type="token", value=piece)
+            body = "".join(pieces).strip() or self.chat.reply(user_input, system).strip()
+            return self._wrap_with_personality(body, mood_ctx, topic="email")
 
         def _listar_emails() -> str:
             summaries = self.email.fetch_and_classify(limit=5 if PERF.is_accelerated() else 10)
