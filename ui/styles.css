@@ -940,3 +940,15 @@ html, body {
 .memory-panel__actions button { border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text-muted); padding: 8px 12px; font: inherit; font-size: .8rem; cursor: pointer; }
 .memory-panel__actions button:hover { border-color: var(--accent); color: var(--accent); }
 .memory-panel__actions .memory-panel__danger:hover { border-color: #ff5470; color: #ff5470; }
+
+
+/* ---------- Modo de foco ---------- */
+.chat__focus { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 0.72rem; color: var(--text-muted); background: transparent; border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; cursor: pointer; transition: color 200ms, border-color 200ms, background 200ms; }
+.chat__focus:hover { color: var(--text); border-color: var(--accent); }
+.chat__focus--on { color: var(--accent-2); border-color: var(--accent-2); background: rgba(0, 255, 163, 0.1); }
+.focus-mode .chat__actions > :not(.chat__focus), .focus-mode .stats, .focus-mode .storage-banner { display: none !important; }
+.focus-mode .history-panel, .focus-mode .memory-panel, .focus-mode .debug-panel { display: none !important; }
+.focus-mode .chat__header { justify-content: center; }
+.focus-mode .chat__brand .chat__status, .focus-mode .chat__mood { display: none; }
+.focus-mode .chat__main { max-width: 760px; margin-inline: auto; }
+@media (max-width: 640px) { .chat__focus-text { display: none; } }
