@@ -275,7 +275,7 @@ async def websocket_endpoint(ws: WebSocket):
                 DEBUG.log("request", source="voz", message=text)
                 started = time.time()
                 try:
-                    response = await asyncio.to_thread(orchestrator.handle, text, _emit_bridge(ws))
+                    response = await asyncio.to_thread(orchestrator.handle, text, _emit_bridge(ws), focus=bool(payload.get("focus")))
                 except Exception as e:
                     response = {"text": f"⚠️ Algo deu errado: {e}", "meta": {"intent": "error"}}
                     DEBUG.log("error", where="voz", error=str(e))
