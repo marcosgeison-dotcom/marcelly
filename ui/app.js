@@ -36,6 +36,7 @@
   let recorder = null;
   let chunks = [];
   let busy = false;
+  let reconnectTimer = null;
 
   function setBusy(value) {
     busy = value;
@@ -179,7 +180,9 @@
 
   ws.addEventListener('close', () => {
     clearLoading();
-    addMessage('bot', '⚠️ Conexão encerrada. Recarregue a página para reconectar.');
+    if (reconnectTimer) return;
+    addMessage('bot', '⚠️ Conexão instável. Reconectando...');
+    reconnectTimer = window.setTimeout(() => window.location.reload(), 3000);
   });
 
   ws.addEventListener('error', () => {
@@ -190,7 +193,7 @@
     cancelBtn.addEventListener('click', () => {
       if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'cancel' }));
       clearLoading();
-    });;
+    });
   }
 
   form.addEventListener('submit', async (e) => {
@@ -438,9 +441,11 @@
 
 
   function timeHtml() {
-    const now = new Date();
-    const hh = String(now.getHours()).padStart(2, '0');
-    const mm = String(now.getMinutes()).padStart(2, '0');
+    const time = new Intl.DateTimeFormat('pt-BR', {
+      timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(new Date());
+    const hh = time.find((part) => part.type === 'hour').value;
+    const mm = time.find((part) => part.type === 'minute').value;
     return '<span class="msg__time">' + hh + ':' + mm + '</span>';
   }
 
