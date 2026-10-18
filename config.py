@@ -66,8 +66,8 @@ _AUTO_MODEL = "llama3.2:1b" if _TOTAL_RAM_GB <= 8 else "llama3.2:3b"
 @dataclass
 class OllamaConfig:
     host: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-    model: str = os.getenv("MARCELY_MODEL", "llama3.2:1b")
-    decision_model: str = os.getenv("MARCELY_DECISION_MODEL", "llama3.2:1b")
+    model: str = os.getenv("MARCELY_MODEL", "qwen2.5:1.5b")
+    decision_model: str = os.getenv("MARCELY_DECISION_MODEL", "qwen2.5:1.5b")
     temperature: float = 0.2
     # Limite de threads por resposta: em maquinas modestas o llama-server
     # toma quase metade da CPU e congela tudo. Padrao: 2 a 4 threads.
