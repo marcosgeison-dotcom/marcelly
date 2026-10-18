@@ -44,8 +44,8 @@ def _emit(emit, **payload):
 
 
 WEB_QUERY_PATTERN = re.compile(
-    r"\b(notícia|noticias|hoje|agora|atual|pesquisa|eleição|eleicoes|política|"
-    r"clima|temperatura|jogo|resultado)\b",
+    r"\b(notícia|notícias|noticias|hoje|agora|atual|pesquisa|buscar|busque|busca|"
+    r"eleição|eleições|eleicao|eleicoes|política|politica|clima|temperatura|jogo|resultado|internet)\b",
     re.IGNORECASE,
 )
 
@@ -193,8 +193,23 @@ class MarcellyOrchestrator:
 
         web_context = ""
         if _needs_web_search(user_input):
-            _emit(emit, type="status", value="🌐 Buscando informações atualizadas...")
+            _emit(emit, type="status", value="🌐 Pesquisando na internet...")
+            log.info("Buscando na web: %s", user_input)
             web_context = search_web(user_input)
+            if web_context:
+                DEBUG.log("web_search", query=user_input, results_found=True)
+            else:
+                DEBUG.log("web_search", query=user_input, results_found=False)
+                text = "Não encontrei informações atualizadas na busca. Verifique sua conexão e tente novamente."
+                PERF.finish()
+                self._remember_async(user_input, "web_search", mood_ctx.mood, text)
+                return {
+                    "text": text,
+                    "meta": {
+                        "intent": "web_search", "confidence": 1.0, "mood": mood_ctx.mood,
+                        "time_of_day": mood_ctx.time_of_day, "day_of_week": mood_ctx.day_of_week,
+                    },
+                }
 
         safeguarded = safe_current_affairs_reply(user_input) if not web_context else None
         if safeguarded:
@@ -237,7 +252,7 @@ class MarcellyOrchestrator:
 
         # Saudações e agradecimentos simples: resposta instantânea, sem modelo.
         # Um "bom dia" não precisa de IA: responde na hora, em qualquer máquina.
-        if routing.intent == "chat" and self._is_casual(user_input):
+        if self._is_casual(user_input):
             text = self.personality.instant_reply(
                 mood_ctx,
                 user_name=self.memory.profile.get("name", ""),
