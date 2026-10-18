@@ -16,6 +16,7 @@ from core.debug import DEBUG
 from core.intent_router import IntentRouter
 from core.knowledge_guardrails import safe_current_affairs_reply
 from core.memory import Memory
+from core.response_cache import ResponseCache
 from core.mood_detector import MoodDetector
 from core.ollama_client import OllamaClient
 from core.personality import Personality
@@ -60,6 +61,7 @@ class MarcellyOrchestrator:
         self.mood = MoodDetector()
         self.personality = Personality()
         self.memory = Memory()
+        self.cache = ResponseCache()
         self.llm = OllamaClient()
 
         self.email = EmailModule()
@@ -236,6 +238,23 @@ class MarcellyOrchestrator:
             reasoning=routing.reasoning,
         )
 
+        # Perguntas recorrentes de conversa retornam instantaneamente do cache local.
+        # Buscas na web não entram aqui, pois o contexto precisa continuar atual.
+        if routing.intent == "chat" and not web_context:
+            cached = self.cache.get(user_input)
+            if cached:
+                _emit(emit, type="status", value="⚡ Resposta encontrada no cache local...")
+                _emit(emit, type="token", value=cached)
+                PERF.finish()
+                return {
+                    "text": cached,
+                    "meta": {
+                        "intent": "chat", "confidence": routing.confidence, "mood": mood_ctx.mood,
+                        "time_of_day": mood_ctx.time_of_day, "day_of_week": mood_ctx.day_of_week,
+                        "cached": True,
+                    },
+                }
+
         # Saudações e mensagens casuais não têm fatos: pula a extração (chamada de LLM)
         # No modo rapido, pula a extracao de fatos: e uma chamada extra de LLM
         if (
@@ -296,6 +315,8 @@ class MarcellyOrchestrator:
         # Registra a interação em segundo plano — não segura a resposta
         # (o modelo de embeddings carregaria na hora e atrasaria o fim)
         PERF.finish()
+        if routing.intent == "chat" and not web_context:
+            self.cache.put(user_input, text)
         self._remember_async(user_input, routing.intent, mood_ctx.mood, text)
 
         return {
