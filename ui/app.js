@@ -862,5 +862,19 @@
     });
   }
 
+  // ---------- Atalhos de teclado ----------
+  document.addEventListener('keydown', (event) => {
+    if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    const key = event.key.toLowerCase();
+    if (key === 'v' && micBtn && !micBtn.disabled) {
+      event.preventDefault();
+      micBtn.click();
+    }
+    if (key === 'd' && debugBtn && !debugBtn.disabled) {
+      event.preventDefault();
+      debugBtn.click();
+    }
+  });
+
   input.focus();
 })();
