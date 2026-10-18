@@ -8,11 +8,12 @@ log = logging.getLogger("marcelly.web_search")
 
 def search_web(query: str, max_results: int = 3) -> str:
     """Busca resultados públicos e devolve somente o contexto essencial ao modelo."""
+    log.info("Iniciando busca web: %s", query)
     try:
         with DDGS() as ddgs:
             results = list(ddgs.text(query, max_results=max_results, region="br-pt"))
     except Exception as exc:
-        log.warning("Busca web indisponível: %s", exc)
+        log.warning("Busca web indisponível: %s", exc, exc_info=True)
         return ""
 
     formatted_results = []
@@ -25,4 +26,6 @@ def search_web(query: str, max_results: int = 3) -> str:
                 f"[{index}] Título: {title}\nResumo: {body[:700]}"
                 + (f"\nFonte: {href}" if href else "")
             )
-    return "\n\n".join(formatted_results)
+    context = "\n\n".join(formatted_results)
+    log.info("Busca web concluída com %d resultado(s)", len(formatted_results))
+    return context
