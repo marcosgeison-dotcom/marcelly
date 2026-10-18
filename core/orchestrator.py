@@ -180,7 +180,7 @@ class MarcellyOrchestrator:
             ))
         return _server_ok() and not failed
 
-    def handle(self, user_input: str, emit=None, attachment: dict | None = None) -> dict[str, Any]:
+    def handle(self, user_input: str, emit=None, attachment: dict | None = None, focus: bool = False) -> dict[str, Any]:
         """
         Processa uma entrada e devolve:
         { "text": str, "meta": { "intent", "mood", ... } }
@@ -188,7 +188,7 @@ class MarcellyOrchestrator:
         anexado é analisado no módulo de conversa.
         """
         if attachment and attachment.get("text"):
-            return self._handle_with_attachment(user_input, attachment, emit)
+            return self._handle_with_attachment(user_input, attachment, emit, focus=focus)
         PERF.start("roteamento")
         mood_ctx = self.mood.detect(user_input)
         DEBUG.log("mood", mood=mood_ctx.mood, time_of_day=mood_ctx.time_of_day)
@@ -310,7 +310,10 @@ class MarcellyOrchestrator:
             _emit(emit, type="status", value="🛠️ Revisando minhas habilidades...")
             text = self._handle_skills(user_input, mood_ctx)
         else:
-            text = self._handle_chat(user_input, mood_ctx, emit, web_context=web_context)
+            text = self._handle_chat(user_input, mood_ctx, emit, web_context=web_context, focus=focus)
+
+        if focus:
+            text = self._focus_reply(text)
 
         # Registra a interação em segundo plano — não segura a resposta
         # (o modelo de embeddings carregaria na hora e atrasaria o fim)
@@ -330,7 +333,7 @@ class MarcellyOrchestrator:
             },
         }
 
-    def _handle_with_attachment(self, user_input: str, attachment: dict, emit=None) -> dict[str, Any]:
+    def _handle_with_attachment(self, user_input: str, attachment: dict, emit=None, focus: bool = False) -> dict[str, Any]:
         """Arquivo anexado: análise direta pelo módulo de conversa (sem roteamento)."""
         PERF.start("roteamento")
         question = (user_input or "").strip() or "Faça um resumo do arquivo anexado com os pontos principais."
@@ -342,7 +345,7 @@ class MarcellyOrchestrator:
             "Conteúdo:\n"
             f"{attachment['text']}"
         )
-        text = self._handle_chat(augmented, mood_ctx, emit)
+        text = self._handle_chat(augmented, mood_ctx, emit, focus=focus)
         PERF.finish()
         self._remember_async(question, "chat", mood_ctx.mood, text)
         return {
@@ -378,11 +381,17 @@ class MarcellyOrchestrator:
         t = text.lower().strip()
         return len(t) < 30 and any(c in t for c in casuals)
 
-    def _handle_chat(self, user_input: str, mood_ctx, emit=None, web_context: str = "") -> str:
+    def _handle_chat(self, user_input: str, mood_ctx, emit=None, web_context: str = "", focus: bool = False) -> str:
         system = self.personality.build_system_prompt(
             mood_ctx, user_name=self.memory.profile.get("name", ""),
             profile=self.memory.profile,
         )
+        if focus:
+            system += (
+                "\n\nMODO DE FOCO ATIVO: responda de forma direta e concisa. "
+                "Comece pela ação ou conclusão, use no máximo quatro pontos curtos quando necessário, "
+                "não repita a pergunta e não acrescente introduções, brincadeiras ou sugestões extras."
+            )
         if web_context:
             system += (
                 "\n\nRESULTADOS DA BUSCA NA WEB EM TEMPO REAL:\n"
@@ -412,6 +421,14 @@ class MarcellyOrchestrator:
         if joke:
             parts.append(f"\n\n_Ps: {joke}_")
         return "\n".join(parts)
+
+    def _focus_reply(self, text: str) -> str:
+        """Mantém respostas de módulos especializados compactas no modo de foco."""
+        blocks = [block.strip() for block in text.split("\n\n") if block.strip()]
+        concise = "\n\n".join(blocks[:4])
+        if len(concise) > 900:
+            concise = concise[:900].rsplit(" ", 1)[0] + "…"
+        return concise
 
     def _handle_agents(self, user_input: str, mood_ctx) -> str:
         body = self.agents.dispatch(user_input)
