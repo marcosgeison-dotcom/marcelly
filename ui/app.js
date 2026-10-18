@@ -29,6 +29,27 @@
   const debugPanel = document.getElementById('debugPanel');
   const debugList = document.getElementById('debugList');
   const debugClearBtn = document.getElementById('debugClearBtn');
+  const focusBtn = document.getElementById('focusBtn');
+
+  let focusMode = false;
+
+  function setFocusMode(enabled) {
+    focusMode = enabled;
+    document.body.classList.toggle('focus-mode', enabled);
+    if (focusBtn) {
+      focusBtn.setAttribute('aria-pressed', String(enabled));
+      focusBtn.classList.toggle('chat__focus--on', enabled);
+      focusBtn.title = enabled
+        ? 'Modo de foco ativo. Clique para desativar (Alt+F)'
+        : 'Ativar modo de foco (Alt+F)';
+    }
+    try { localStorage.setItem('marcelly_focus_mode', String(enabled)); } catch (e) {}
+  }
+
+  if (focusBtn) {
+    try { setFocusMode(localStorage.getItem('marcelly_focus_mode') === 'true'); } catch (e) {}
+    focusBtn.addEventListener('click', () => setFocusMode(!focusMode));
+  }
 
   const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(protocol + '://' + location.host + '/ws');
@@ -203,7 +224,7 @@
     const text = input.value.trim();
     if (!text && !attachedFile) return;
 
-    const payload = { message: text };
+    const payload = { message: text, focus: focusMode };
     let shown = text;
     if (attachedFile) {
       try {
@@ -421,7 +442,7 @@
         if (!chunks.length) return;
         const audio = await blobToBase64(new Blob(chunks, { type: 'audio/webm' }));
         setBusy(true);
-        ws.send(JSON.stringify({ type: 'voice', audio, speak: true }));
+        ws.send(JSON.stringify({ type: 'voice', audio, speak: true, focus: focusMode }));
       };
       recorder.start();
       micBtn.classList.add('recording');
@@ -873,6 +894,10 @@
     if (key === 'd' && debugBtn && !debugBtn.disabled) {
       event.preventDefault();
       debugBtn.click();
+    }
+    if (key === 'f' && focusBtn && !focusBtn.disabled) {
+      event.preventDefault();
+      focusBtn.click();
     }
   });
 
