@@ -92,7 +92,8 @@ class EmailConfig:
 class CloudConfig:
     """Fallback opcional para perguntas complexas."""
     api_key: Optional[str] = os.getenv("DEEPSEEK_API_KEY")
-    model: str = os.getenv("MARCELY_CLOUD_MODEL", "deepseek-v4-pro")
+    base_url: str = os.getenv("MARCELY_CLOUD_BASE_URL", "https://api.deepseek.com")
+    model: str = os.getenv("MARCELY_CLOUD_MODEL", "deepseek-chat")
     ram_threshold: float = float(os.getenv("MARCELY_CLOUD_RAM_THRESHOLD", "85"))
 
 
