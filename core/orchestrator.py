@@ -12,6 +12,7 @@ from rich.panel import Panel
 
 from config import CONFIG
 from core.agents import AgentRegistry
+from core.cloud_client import CloudClient
 from core.debug import DEBUG
 from core.intent_router import IntentRouter
 from core.knowledge_guardrails import safe_current_affairs_reply
@@ -63,6 +64,7 @@ class MarcellyOrchestrator:
         self.memory = Memory()
         self.cache = ResponseCache()
         self.llm = OllamaClient()
+        self.cloud = CloudClient()
 
         self.email = EmailModule()
         self.decision = DecisionModule()
@@ -406,14 +408,32 @@ class MarcellyOrchestrator:
         if context:
             system += "\n\n" + context
 
-        _emit(emit, type="status", value="✍️ Escrevendo a resposta...")
-        pieces = []
-        for piece in self.chat.reply_stream(user_input, system):
-            pieces.append(piece)
-            _emit(emit, type="token", value=piece)
-        reply = "".join(pieces).strip()
-        if not reply:
-            reply = self.chat.reply(user_input, system).strip()
+        cloud_system = (
+            "Você é a Marcelly. Responda em português, de forma útil e segura. "
+            "Não assuma acesso a dados pessoais, memória local ou arquivos além do que o usuário enviou. "
+        )
+        if focus:
+            cloud_system += "Responda diretamente e de forma concisa."
+
+        try:
+            if self.cloud.should_use(user_input):
+                _emit(emit, type="status", value="☁️ Tarefa complexa, consultando a nuvem...")
+                reply = self.cloud.chat(user_input, cloud_system)
+            else:
+                _emit(emit, type="status", value="✍️ Escrevendo a resposta...")
+                pieces = []
+                for piece in self.chat.reply_stream(user_input, system):
+                    pieces.append(piece)
+                    _emit(emit, type="token", value=piece)
+                reply = "".join(pieces).strip()
+                if not reply:
+                    reply = self.chat.reply(user_input, system).strip()
+        except RuntimeError as error:
+            if not self.cloud.available():
+                raise
+            _emit(emit, type="status", value="☁️ Modelo local indisponível, usando a nuvem...")
+            reply = self.cloud.chat(user_input, cloud_system)
+            DEBUG.log("cloud_fallback", reason=str(error))
         opener = self.personality.opener(mood_ctx)
 
         parts = [f"{opener} {reply}" if opener else reply]
