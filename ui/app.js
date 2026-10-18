@@ -51,8 +51,7 @@
     focusBtn.addEventListener('click', () => setFocusMode(!focusMode));
   }
 
-  const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  const ws = new WebSocket(protocol + '://' + location.host + '/ws');
+  let activeRequest = null;
 
   let recorder = null;
   let chunks = [];
@@ -154,8 +153,7 @@
     resetStream();
   }
 
-  ws.addEventListener('message', (ev) => {
-    const data = JSON.parse(ev.data);
+  function handleServerEvent(data) {
     if (data.type === 'typing') {
       if (typingIndicator) {
         typingIndicator.hidden = !data.value;
@@ -197,22 +195,43 @@
     if (data.type === 'transcript') { addMessage('user', data.text); return; }
     if (data.type === 'debug') { addDebugEvent(data.event); return; }
     if (data.type === 'message' || data.type === 'done') finishResponse(data);
-  });
+  }
 
-  ws.addEventListener('close', () => {
-    clearLoading();
-    if (reconnectTimer) return;
-    addMessage('bot', '⚠️ Conexão instável. Reconectando...');
-    reconnectTimer = window.setTimeout(() => window.location.reload(), 3000);
-  });
-
-  ws.addEventListener('error', () => {
-    clearLoading();
-  });
+  async function startStream(payload) {
+    activeRequest = new AbortController();
+    try {
+      const response = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+        body: JSON.stringify(payload),
+        signal: activeRequest.signal,
+      });
+      if (!response.ok || !response.body) throw new Error('Não foi possível iniciar a conversa.');
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split('\n\n');
+        buffer = events.pop();
+        events.forEach((event) => {
+          const line = event.split('\n').find((part) => part.startsWith('data: '));
+          if (line) handleServerEvent(JSON.parse(line.slice(6)));
+        });
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') addMessage('bot', '⚠️ Não consegui concluir a conversa. Tente novamente.');
+    } finally {
+      activeRequest = null;
+      if (busy) clearLoading();
+    }
+  }
 
   if (cancelBtn) {
     cancelBtn.addEventListener('click', () => {
-      if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'cancel' }));
+      if (activeRequest) activeRequest.abort();
       clearLoading();
     });
   }
@@ -237,7 +256,7 @@
     }
     addMessage('user', shown);
     setBusy(true);
-    ws.send(JSON.stringify(payload));
+    startStream(payload);
     resetStream();
     input.value = '';
     clearAttachment();
@@ -442,7 +461,8 @@
         if (!chunks.length) return;
         const audio = await blobToBase64(new Blob(chunks, { type: 'audio/webm' }));
         setBusy(true);
-        ws.send(JSON.stringify({ type: 'voice', audio, speak: true, focus: focusMode }));
+        setBusy(true);
+        startStream({ type: 'voice', audio, speak: true, focus: focusMode });
       };
       recorder.start();
       micBtn.classList.add('recording');
