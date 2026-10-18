@@ -16,7 +16,7 @@ from pathlib import Path
 import uvicorn
 import psutil
 from fastapi import Body, FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from core.debug import DEBUG
@@ -228,6 +228,91 @@ def _free_stale_instance(port: int = 8765):
     _run(["taskkill", "/F", "/IM", "ollama.exe"])
 
 
+
+def _sse_event(payload: dict) -> str:
+    return "data: " + json.dumps(payload, ensure_ascii=False) + "\n\n"
+
+
+@app.post("/api/chat/stream")
+async def chat_stream(payload: dict = Body(...)):
+    """Canal SSE para mensagens, status e tokens sem conexão WebSocket persistente."""
+    queue: asyncio.Queue = asyncio.Queue()
+    loop = asyncio.get_running_loop()
+
+    def emit(event: dict):
+        loop.call_soon_threadsafe(queue.put_nowait, event)
+
+    async def run_chat():
+        try:
+            is_voice = payload.get("type") == "voice"
+            message = str(payload.get("message", "") or "").strip()
+            if is_voice:
+                audio_b64 = payload.get("audio", "")
+                if not audio_b64:
+                    emit({"type": "done"})
+                    return
+                emit({"type": "transcribing", "value": True})
+                message = await asyncio.to_thread(voice.transcribe, base64.b64decode(audio_b64))
+                emit({"type": "transcribing", "value": False})
+                if not message:
+                    emit({"type": "message", "text": "🎙️ Não entendi o que você disse. Tente falar de novo.", "meta": {"intent": "voice_error"}})
+                    emit({"type": "done"})
+                    return
+                emit({"type": "transcript", "text": message})
+
+            attachment = payload.get("attachment") or {}
+            attach_name = str(attachment.get("name", "") or "")
+            attachment_text = ""
+            if attach_name:
+                emit({"type": "status", "value": "📄 Lendo o arquivo anexado..."})
+                attachment_text = await asyncio.to_thread(
+                    extract_text, attach_name, base64.b64decode(attachment.get("content_b64") or "")
+                )
+                if not attachment_text:
+                    emit({"type": "message", "text": "⚠️ Não consegui ler o arquivo **" + attach_name + "**.", "meta": {"intent": "attachment_error"}})
+                    emit({"type": "done"})
+                    return
+            if not message and not attach_name:
+                emit({"type": "done"})
+                return
+
+            emit({"type": "typing", "value": True})
+            DEBUG.log("request", source="voz" if is_voice else ("anexo" if attach_name else "texto"), message=message or attach_name)
+            started = time.time()
+            response = await asyncio.to_thread(
+                orchestrator.handle, message, emit,
+                attachment={"name": attach_name, "text": attachment_text} if attach_name else None,
+                focus=bool(payload.get("focus")),
+            )
+            event = DEBUG.log("response", duration_ms=int((time.time() - started) * 1000), intent=(response.get("meta") or {}).get("intent"), chars=len(response.get("text", "")))
+            if DEBUG.enabled:
+                emit({"type": "debug", "event": event})
+            emit({"type": "typing", "value": False})
+            emit({"type": "message", **response})
+            emit({"type": "done"})
+            if is_voice and payload.get("speak", True) and response.get("text"):
+                await asyncio.to_thread(voice.speak, response["text"])
+        except Exception as error:
+            DEBUG.log("error", where="sse", error=str(error))
+            emit({"type": "typing", "value": False})
+            emit({"type": "message", "text": f"⚠️ Algo deu errado: {error}", "meta": {"intent": "error"}})
+            emit({"type": "done"})
+
+    task = asyncio.create_task(run_chat())
+
+    async def events():
+        try:
+            while True:
+                event = await queue.get()
+                yield _sse_event(event)
+                if event.get("type") == "done":
+                    break
+        finally:
+            if not task.done():
+                task.cancel()
+
+    return StreamingResponse(events(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
@@ -318,6 +403,7 @@ async def websocket_endpoint(ws: WebSocket):
                 response = await asyncio.to_thread(
                     orchestrator.handle, user_message, _emit_bridge(ws),
                     attachment={"name": attach_name, "text": attachment_text} if attach_name else None,
+                    focus=bool(payload.get("focus")),
                 )
             except Exception as e:
                 response = {"text": f"⚠️ Algo deu errado: {e}", "meta": {"intent": "error"}}
