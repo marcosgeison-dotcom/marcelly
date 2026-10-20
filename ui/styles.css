@@ -952,3 +952,31 @@ html, body {
 .focus-mode .chat__brand .chat__status, .focus-mode .chat__mood { display: none; }
 .focus-mode .chat__main { max-width: 760px; margin-inline: auto; }
 @media (max-width: 640px) { .chat__focus-text { display: none; } }
+
+
+/* ---------- HUD vivo ---------- */
+html, body { background: #05070f; }
+body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 20; background: linear-gradient(transparent 49%, rgba(0,229,255,.12) 50%, transparent 51%); height: 3px; opacity: .32; animation: scanline 8s linear infinite; }
+.chat { position: relative; max-width: 1040px; background-image: linear-gradient(rgba(26,52,83,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(26,52,83,.16) 1px, transparent 1px), radial-gradient(ellipse at 50% 0%, rgba(0,229,255,.11), transparent 45%), var(--bg); background-size: 32px 32px, 32px 32px, auto, auto; }
+.msg__bubble { background: rgba(16,25,45,.68); border-color: rgba(0,229,255,.25); backdrop-filter: blur(10px); }
+.chat__input-wrapper { background: rgba(5,7,15,.72); border-color: rgba(0,229,255,.22); backdrop-filter: blur(10px); }
+.hud { position: relative; height: 172px; display: grid; place-items: center; overflow: hidden; border-bottom: 1px solid rgba(0,229,255,.16); isolation: isolate; }
+#audioVisualizer { position: absolute; width: min(480px, 100%); height: 170px; z-index: -1; opacity: .8; }
+.hud__orb { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #c9fbff, #00b8dd 25%, #056b93 62%, #021523); border: 1px solid rgba(141,246,255,.9); box-shadow: 0 0 18px rgba(0,229,255,.9), 0 0 54px rgba(0,229,255,.32), inset 0 0 20px rgba(229,255,255,.65); animation: orbPulse 2.8s ease-in-out infinite; }
+.hud__orb span { width: 15px; height: 15px; border-radius: inherit; background: #edffff; box-shadow: 0 0 18px #fff; }
+.hud__rings { position: absolute; width: 152px; height: 152px; display: grid; place-items: center; }
+.hud__rings i { position: absolute; border: 1px dashed rgba(0,229,255,.72); border-radius: 50%; animation: rotateRing 15s linear infinite; }
+.hud__rings i:nth-child(1) { width: 100%; height: 100%; border-style: dashed dotted; }
+.hud__rings i:nth-child(2) { width: 120px; height: 120px; animation-duration: 11s; animation-direction: reverse; }
+.hud__rings i:nth-child(3) { width: 88px; height: 88px; border-color: rgba(0,255,163,.55); animation-duration: 8s; }
+.hud__label { position: absolute; bottom: 12px; margin: 0; color: var(--accent); font: 700 .63rem/1 var(--font); letter-spacing: .2em; }
+.hud.active .hud__orb { animation-duration: .72s; box-shadow: 0 0 22px #00ffa3, 0 0 74px rgba(0,255,163,.55), inset 0 0 20px rgba(229,255,255,.7); }
+.hud.active .hud__rings i { border-color: rgba(0,255,163,.88); animation-duration: 2.6s; }
+.hud.active .hud__rings i:nth-child(2) { animation-duration: 2s; }
+.hud.active .hud__rings i:nth-child(3) { animation-duration: 1.3s; }
+.stream-cursor, .terminal-cursor { display: inline-block; color: var(--accent); animation: terminalBlink .8s steps(1) infinite; }
+@keyframes rotateRing { to { transform: rotate(360deg); } }
+@keyframes orbPulse { 50% { transform: scale(1.1); filter: brightness(1.28); } }
+@keyframes scanline { from { transform: translateY(-8px); } to { transform: translateY(100vh); } }
+@keyframes terminalBlink { 50% { opacity: 0; } }
+@media (max-width: 640px) { .hud { height: 132px; } #audioVisualizer { height: 132px; } .hud__rings { transform: scale(.78); } .hud__label { bottom: 8px; } }

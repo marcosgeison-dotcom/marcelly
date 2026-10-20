@@ -12,6 +12,78 @@
   const attachName = document.getElementById('attachName');
   const attachRemoveBtn = document.getElementById('attachRemoveBtn');
 
+  const hud = document.getElementById('hud');
+  const hudLabel = document.getElementById('hudLabel');
+  const visualizer = document.getElementById('audioVisualizer');
+  let audioContext = null;
+  let analyser = null;
+  let visualFrame = null;
+
+  function setHudActive(active) {
+    if (!hud) return;
+    hud.classList.toggle('active', active);
+    if (hudLabel) hudLabel.textContent = active ? 'PROCESSANDO SOLICITAÇÃO' : 'SISTEMA LOCAL ONLINE';
+  }
+
+  function drawVisualizer() {
+    if (!visualizer) return;
+    const bounds = visualizer.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    visualizer.width = Math.max(1, Math.floor(bounds.width * ratio));
+    visualizer.height = Math.max(1, Math.floor(bounds.height * ratio));
+    const ctx = visualizer.getContext('2d');
+    const data = analyser ? new Uint8Array(analyser.frequencyBinCount) : null;
+    const paint = () => {
+      const w = visualizer.width, h = visualizer.height, cx = w / 2, cy = h / 2;
+      ctx.clearRect(0, 0, w, h);
+      const now = performance.now() / 1000;
+      if (data) analyser.getByteFrequencyData(data);
+      for (let i = 0; i < 72; i++) {
+        const angle = (Math.PI * 2 * i) / 72 - Math.PI / 2;
+        const level = data ? (data[i % data.length] / 255) * 42 * ratio : (Math.sin(now * 1.8 + i * .31) + 1) * 4 * ratio;
+        const base = 52 * ratio;
+        ctx.strokeStyle = analyser ? 'rgba(0,255,163,.78)' : 'rgba(0,229,255,.42)';
+        ctx.lineWidth = 1.2 * ratio;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(angle) * base, cy + Math.sin(angle) * base);
+        ctx.lineTo(cx + Math.cos(angle) * (base + level), cy + Math.sin(angle) * (base + level));
+        ctx.stroke();
+      }
+      visualFrame = requestAnimationFrame(paint);
+    };
+    cancelAnimationFrame(visualFrame);
+    paint();
+  }
+
+  function connectVisualizer(stream) {
+    audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioContext.state === 'suspended') audioContext.resume();
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 128;
+    audioContext.createMediaStreamSource(stream).connect(analyser);
+    drawVisualizer();
+  }
+
+  function idleVisualizer() { analyser = null; drawVisualizer(); }
+
+  function typewriteBubble(bubble, text) {
+    const plain = String(text || '');
+    let cursor = 0;
+    const tick = () => {
+      cursor = Math.min(plain.length, cursor + 3);
+      bubble.textContent = plain.slice(0, cursor);
+      const caret = document.createElement('span'); caret.className = 'terminal-cursor'; caret.textContent = '▌';
+      bubble.appendChild(caret);
+      chatBody.scrollTop = chatBody.scrollHeight;
+      if (cursor < plain.length) return setTimeout(tick, 12);
+      bubble.innerHTML = formatText(plain) + timeHtml();
+    };
+    tick();
+  }
+
+  window.addEventListener('resize', () => { if (visualizer) drawVisualizer(); });
+  drawVisualizer();
+
   let attachedFile = null;
 
   function clearAttachment() {
@@ -134,9 +206,10 @@
     if (data.type === 'message') {
       hideStatus();
       if (streamBubble) {
-        streamBubble.innerHTML = formatText(data.text || streamBuf) + timeHtml();
+        typewriteBubble(streamBubble, data.text || streamBuf);
       } else if (data.text) {
-        addMessage('bot', data.text);
+        const typed = createStreamingMessage();
+        typewriteBubble(typed.bubble, data.text);
       }
       if (data.meta && data.meta.mood) updateMood(data.meta.mood);
       notifyImportantResponse(data);
@@ -154,7 +227,9 @@
   }
 
   function handleServerEvent(data) {
+    if (data.type === 'done') setHudActive(false);
     if (data.type === 'typing') {
+      setHudActive(Boolean(data.value));
       if (typingIndicator) {
         typingIndicator.hidden = !data.value;
         typingIndicator.style.display = data.value ? '' : 'none';
@@ -457,6 +532,7 @@
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
+        idleVisualizer();
         micBtn.classList.remove('recording');
         if (!chunks.length) return;
         const audio = await blobToBase64(new Blob(chunks, { type: 'audio/webm' }));
@@ -464,6 +540,7 @@
         setBusy(true);
         startStream({ type: 'voice', audio, speak: true, focus: focusMode });
       };
+      connectVisualizer(stream);
       recorder.start();
       micBtn.classList.add('recording');
     } catch (err) {
