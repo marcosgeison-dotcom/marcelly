@@ -40,9 +40,8 @@ def create_desktop_shortcut() -> bool:
     if not desktop.exists():
         return False
     lnk = desktop / "Marcelly.lnk"
-    if lnk.exists():
-        return True
 
+    # Sempre recria o atalho para apontar para o executável recém-instalado.
     if getattr(sys, "frozen", False):
         target, args, workdir, icon = sys.executable, "", str(Path(sys.executable).parent), sys.executable
     else:
