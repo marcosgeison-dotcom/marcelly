@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Marcelly — Assistente local</title>
-  <link rel="stylesheet" href="/static/styles.css?v=1.3" />
+  <link rel="stylesheet" href="/static/styles.css?v=1.4" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='none' stroke='%2300e5ff' stroke-width='2'/><circle cx='16' cy='16' r='5' fill='%2300e5ff'/></svg>" />
 </head>
 <body>
@@ -135,6 +135,12 @@
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
           <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
         </svg>
+      </button>
+      <button type="button" id="visualizerBtn" class="visualizer-toggle" aria-pressed="false" title="Ativar visualizador de áudio">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M4 12h2m2-5v10m4-14v18m4-14v10m4-5h2"/>
+        </svg>
+        <span class="visualizer-toggle__text">Visualizador</span>
       </button>
       <button type="button" id="micBtn" class="mic" aria-label="Falar com o Marcelly" title="Clique e fale">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
