@@ -364,7 +364,29 @@ class EmailModule:
             'coloque em "search".'
         )
         raw = self.llm.chat(user_input, system=system, format_json=True)
-        return json.loads(raw)
+        parsed = json.loads(raw)
+        if not isinstance(parsed, dict):
+            parsed = {}
+        if not parsed.get("search"):
+            fallback = self._extract_local_search(user_input)
+            if fallback:
+                parsed["search"] = fallback
+        return parsed
+
+    @staticmethod
+    def _extract_local_search(user_input: str) -> str:
+        """Preserva filtros explícitos mesmo quando o modelo não os devolve."""
+        text = " ".join(user_input.strip().split())
+        match = re.search(
+            r"\b(?:de|do|da|para|pro|pra|sobre|assunto)\s+([^,;.!?]+)",
+            text,
+            re.IGNORECASE,
+        )
+        if not match:
+            return ""
+        candidate = match.group(1).strip(" \"'")
+        ignored = {"hoje", "ontem", "amanhã", "responder", "ler", "ver", "mostrar"}
+        return "" if candidate.lower() in ignored else candidate
 
     def handle_request(self, user_input: str) -> str:
         """Executa o pedido de e-mail conforme o que o usuário pediu —
