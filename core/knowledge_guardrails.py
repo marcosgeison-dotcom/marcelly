@@ -3,7 +3,7 @@ import re
 
 
 CURRENT_AFFAIRS = re.compile(
-    r"\b(eleição|eleições|eleitoral|corrida presidencial|pesquisa eleitoral|\"
+    r"\b(eleiçāo|eleições|eleitoral|corrida presidencial|pesquisa eleitoral|"
     r"intenção de voto|quem está (?:na )?frente|quem lidera|candidato)\b",
     re.IGNORECASE,
 )
