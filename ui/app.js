@@ -6,6 +6,7 @@
   const typingIndicator = document.getElementById('typingIndicator');
   const cancelBtn = document.getElementById('cancelBtn');
   const micBtn = document.getElementById('micBtn');
+  const visualizerBtn = document.getElementById('visualizerBtn');
   const attachBtn = document.getElementById('attachBtn');
   const fileInput = document.getElementById('fileInput');
   const attachChip = document.getElementById('attachChip');
@@ -18,11 +19,24 @@
   let audioContext = null;
   let analyser = null;
   let visualFrame = null;
+  let visualizerStream = null;
 
-  function setHudActive(active) {
+  function setHudActive(active, label) {
     if (!hud) return;
     hud.classList.toggle('active', active);
-    if (hudLabel) hudLabel.textContent = active ? 'PROCESSANDO SOLICITAÇÃO' : 'SISTEMA LOCAL ONLINE';
+    if (hudLabel) hudLabel.textContent = label || (active ? 'PROCESSANDO SOLICITAÇÃO' : 'SISTEMA LOCAL ONLINE');
+  }
+
+  function stopVisualizerPreview() {
+    if (visualizerStream) visualizerStream.getTracks().forEach((track) => track.stop());
+    visualizerStream = null;
+    idleVisualizer();
+    if (!busy) setHudActive(false);
+    if (visualizerBtn) {
+      visualizerBtn.classList.remove('active');
+      visualizerBtn.setAttribute('aria-pressed', 'false');
+      visualizerBtn.title = 'Ativar visualizador de áudio';
+    }
   }
 
   function drawVisualizer() {
@@ -134,6 +148,7 @@
     busy = value;
     sendBtn.disabled = value;
     micBtn.disabled = value;
+    if (visualizerBtn) visualizerBtn.disabled = value;
     if (attachBtn) attachBtn.disabled = value;
   }
 
@@ -518,6 +533,27 @@
 
   input.focus();
 
+  // ---------- Visualizador de áudio ----------
+  if (visualizerBtn) {
+    visualizerBtn.addEventListener('click', async () => {
+      if (busy) return;
+      if (visualizerStream) {
+        stopVisualizerPreview();
+        return;
+      }
+      try {
+        visualizerStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        connectVisualizer(visualizerStream);
+        setHudActive(true, 'VISUALIZADOR DE ÁUDIO ATIVO');
+        visualizerBtn.classList.add('active');
+        visualizerBtn.setAttribute('aria-pressed', 'true');
+        visualizerBtn.title = 'Desativar visualizador de áudio';
+      } catch (err) {
+        addMessage('bot', '⚠️ Não consegui acessar o microfone. Verifique as permissões do navegador.');
+      }
+    });
+  }
+
   // ---------- Comando de voz ----------
   micBtn.addEventListener('click', async () => {
     if (busy) return;
@@ -526,6 +562,7 @@
       return;
     }
     try {
+      if (visualizerStream) stopVisualizerPreview();
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       chunks = [];
@@ -533,6 +570,7 @@
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         idleVisualizer();
+        setHudActive(false);
         micBtn.classList.remove('recording');
         if (!chunks.length) return;
         const audio = await blobToBase64(new Blob(chunks, { type: 'audio/webm' }));
@@ -541,6 +579,7 @@
         startStream({ type: 'voice', audio, speak: true, focus: focusMode });
       };
       connectVisualizer(stream);
+      setHudActive(true, 'CAPTANDO COMANDO DE VOZ');
       recorder.start();
       micBtn.classList.add('recording');
     } catch (err) {
