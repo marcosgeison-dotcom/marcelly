@@ -4,6 +4,7 @@ Transcreve comandos de voz no próprio computador (faster-whisper) e
 responde em voz alta (pyttsx3). Nenhum áudio ou texto vai para a nuvem.
 """
 import logging
+import sys
 import tempfile
 import threading
 from pathlib import Path
@@ -24,8 +25,11 @@ class VoiceEngine:
         with self._model_lock:
             if self._model is None:
                 from faster_whisper import WhisperModel
-                log.info("Carregando modelo de voz local (download pequeno, só na primeira vez)...")
-                self._model = WhisperModel("base", device="cpu", compute_type="int8")
+                bundle_dir = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
+                bundled_model = bundle_dir / "models" / "whisper-base"
+                model_source = str(bundled_model) if bundled_model.exists() else "base"
+                log.info("Carregando modelo de voz local...")
+                self._model = WhisperModel(model_source, device="cpu", compute_type="int8")
             return self._model
 
     def transcribe(self, audio_bytes: bytes, extension: str = "webm") -> str:
