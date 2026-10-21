@@ -252,7 +252,14 @@ async def chat_stream(payload: dict = Body(...)):
                     emit({"type": "done"})
                     return
                 emit({"type": "transcribing", "value": True})
-                message = await asyncio.to_thread(voice.transcribe, base64.b64decode(audio_b64))
+                try:
+                    message = await asyncio.to_thread(voice.transcribe, base64.b64decode(audio_b64))
+                except Exception as error:
+                    DEBUG.log("error", where="voice_transcription", error=str(error))
+                    emit({"type": "transcribing", "value": False})
+                    emit({"type": "message", "text": "⚠️ Não consegui transcrever o áudio localmente. Abra Depuração para ver o detalhe e tente falar novamente.", "meta": {"intent": "voice_error"}})
+                    emit({"type": "done"})
+                    return
                 emit({"type": "transcribing", "value": False})
                 if not message:
                     emit({"type": "message", "text": "🎙️ Não entendi o que você disse. Tente falar de novo.", "meta": {"intent": "voice_error"}})
