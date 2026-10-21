@@ -6,7 +6,7 @@ on:
       tag:
         description: 'Tag da release para anexar o exe'
         required: true
-        default: 'v1.0.0-alpha'
+        default: 'v1.2.2'
 
 jobs:
   build:
@@ -35,10 +35,11 @@ jobs:
         run: python -c "from faster_whisper.utils import download_model; download_model('base', output_dir='models/whisper-base')"
 
       - name: Compilar Marcelly.exe
-        run: pyinstaller --onefile --noconsole --icon ui/icon.ico --name Marcelly-v1.2.1 --add-data "ui;ui" --add-data "core;core" --add-data "modules;modules" --add-data "models;models" --runtime-hook pyi_rth_marcelly_path.py --collect-all tydex --collect-all brier --collect-all uvicorn --collect-all faster_whisper --collect-all av --collect-all ctranslate2 --collect-all pyttsx3 --collect-all webview --collect-all pystray --collect-submodules core --collect-submodules modules --paths . --hidden-import av --hidden-import ctranslate2 --hidden-import core --hidden-import core.agents --hidden-import core.debug --hidden-import core.intent_router --hidden-import core.memory --hidden-import core.mood_detector --hidden-import core.ollama_client --hidden-import core.orchestrator --hidden-import core.personality --hidden-import core.resilience --hidden-import core.skills --hidden-import core.startup --hidden-import core.tray --hidden-import core.voice --hidden-import modules --hidden-import modules.chat_module --hidden-import modules.decision_module --hidden-import modules.email_module --hidden-import modules.guidance_module --hidden-import modules.intent_router app.py
+        run: pyinstaller --onefile --noconsole --icon ui/icon.ico --name Marcelly-v1.2.2 --add-data "ui;ui" --add-data "core;core" --add-data "modules;modules" --add-data "models;models" --runtime-hook pyi_rth_marcelly_path.py --collect-all tydex --collect-all brier --collect-all uvicorn --collect-all faster_whisper --collect-all av --collect-all ctranslate2 --collect-all pyttsx3 --collect-all webview --collect-all pystray --collect-submodules core --collect-submodules modules --paths . --hidden-import av --hidden-import ctranslate2 --hidden-import core --hidden-import core.agents --hidden-import core.debug --hidden-import core.intent_router --hidden-import core.memory --hidden-import core.mood_detector --hidden-import core.ollama_client --hidden-import core.orchestrator --hidden-import core.personality --hidden-import core.resilience --hidden-import core.skills --hidden-import core.startup --hidden-import core.tray --hidden-import core.voice --hidden-import modules --hidden-import modules.chat_module --hidden-import modules.decision_module --hidden-import modules.email_module --hidden-import modules.guidance_module --hidden-import modules.intent_router app.py
 
       - name: Anexar exe à release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
-          files: dist/Marcelly-v1.2.1.exe
+          files: dist/Marcelly-v1.2.2.exe
+          draft: false
