@@ -564,7 +564,10 @@
     try {
       if (visualizerStream) stopVisualizerPreview();
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '');
+      recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       chunks = [];
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
       recorder.onstop = async () => {
@@ -573,14 +576,15 @@
         setHudActive(false);
         micBtn.classList.remove('recording');
         if (!chunks.length) return;
-        const audio = await blobToBase64(new Blob(chunks, { type: 'audio/webm' }));
+        const audio = await blobToBase64(new Blob(chunks, { type: recorder.mimeType || 'audio/webm' }));
         setBusy(true);
-        setBusy(true);
+        if (statusChip) { statusText.textContent = 'Enviando áudio para transcrição local…'; statusChip.hidden = false; }
         startStream({ type: 'voice', audio, speak: true, focus: focusMode });
       };
       connectVisualizer(stream);
       setHudActive(true, 'CAPTANDO COMANDO DE VOZ');
-      recorder.start();
+      recorder.start(250);
+      if (statusChip) { statusText.textContent = 'Ouvindo… clique novamente para enviar'; statusChip.hidden = false; }
       micBtn.classList.add('recording');
     } catch (err) {
       addMessage('bot', '\u26a0\ufe0f N\u00e3o consegui acessar o microfone. Verifique as permiss\u00f5es do navegador.');
